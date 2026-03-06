@@ -17,15 +17,23 @@ class _PartyFeedViewState extends State<partyFeed_view> {
   @override
   Widget build (BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Container(
         // Fons degradat segons la canço
         decoration: BoxDecoration(
+
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [Color(0xFFE94E77), Color(0xFF6A1B9A), Color(0xFF000000)],
           ),
+          image: const DecorationImage(
+            image: AssetImage('assets/Background_App.png'),
+            fit: BoxFit.cover,
+            // opacity: 0.4, // Descomenta aquesta línia si vols barrejar la imatge amb el gradient
+          ),
         ),
+
         child: SafeArea(
           child: Column(
             children: [
