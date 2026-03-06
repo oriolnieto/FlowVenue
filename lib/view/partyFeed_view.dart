@@ -82,7 +82,6 @@ class _PartyFeedViewState extends State<partyFeed_view> {
   }
   
   // Canço actual amb la seva paleta de colors
-  
   Widget _constructorPlayingNow() {
     return Container(
       padding: EdgeInsets.all(15),
