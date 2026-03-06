@@ -27,3 +27,5 @@ flutter:
   assets:
     - assets/Logo_FlowVenue.png
     - assets/Background_App.png
+    - assets/defaultPfp.jpg
+    - assets/pfpToca.png
