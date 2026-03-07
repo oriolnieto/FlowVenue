@@ -13,7 +13,6 @@ class partyFeed_view extends StatefulWidget {
 
 class _PartyFeedViewState extends State<partyFeed_view> {
 
-
   @override
   Widget build (BuildContext context) {
     return Scaffold(
