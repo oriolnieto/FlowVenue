@@ -40,8 +40,4 @@ flutter {
 }
 
 dependencies {
-    implementation(files("libs/spotify-app-remote-release.aar"))
-    implementation(project(":spotify_sdk")) {
-        exclude(group = "", module = "spotify-app-remote")
-    }
 }

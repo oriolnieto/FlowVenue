@@ -20,7 +20,6 @@ class feedItem_model {
     this.cardColor = const Color(0xFF1A1A1A),
     this.isGradient = false,
   });
-
   factory feedItem_model.fromJson(Map<String, dynamic> json) {
     return feedItem_model(
       id: json['id'],
