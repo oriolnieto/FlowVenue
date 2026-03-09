@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'CreatePostView_view.dart';
+
 class SocialFeedView extends StatefulWidget {
   const SocialFeedView({super.key});
   @override
@@ -10,6 +12,20 @@ class _SocialFeedViewState extends State<SocialFeedView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        floatingActionButton: FloatingActionButton(
+            backgroundColor: const Color(0xFFE94E77),
+            elevation: 5,
+            child: const Icon(Icons.add_comment, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreatePostView()),
+              );
+
+            },
+        ),
+
+
       body: Container(
         // Fons amb el gradient corporatiu o la imatge Background_App
         decoration: const BoxDecoration(
