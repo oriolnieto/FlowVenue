@@ -5,11 +5,12 @@ import 'package:flowvenue/view/login_view.dart';
 import 'package:flowvenue/view/socialFeedView_view.dart';
 import 'package:flowvenue/view/CreatePostView_view.dart';
 
+
 void main() {
   runApp(
       const MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: SocialFeedView()
+        home: partyFeed_view()
       ),
   );
 }

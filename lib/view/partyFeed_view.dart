@@ -1,4 +1,7 @@
+import 'package:flowvenue/view/socialFeedView_view.dart';
 import 'package:flutter/material.dart';
+
+import 'introduirCodi.dart';
 
 class partyFeed_view extends StatefulWidget {
   final String urlLogo;
@@ -74,7 +77,17 @@ class _PartyFeedViewState extends State<partyFeed_view> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(icon: Icon(Icons.close, color: Colors.white), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () {
+              Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const introduirCodi()),
+
+              );
+            },
+          ),
+
           // Imatge dinàmica del logo de la discoteca
           Image.network(
             widget.urlLogo,
@@ -82,7 +95,15 @@ class _PartyFeedViewState extends State<partyFeed_view> {
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) => Icon(Icons.error, color: Colors.white),
           ),
-          IconButton(icon: Icon(Icons.rss_feed, color: Colors.white), onPressed: () {}),
+          IconButton(
+              icon: Icon(Icons.rss_feed, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SocialFeedView()),
+                );
+              },
+          ),
         ],
       ),
     );

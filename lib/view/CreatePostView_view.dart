@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 class CreatePostView extends StatefulWidget {
   final bool isReply;
-  const CreatePostView({super.key, this.isReply = false});
+  final String? originalUser;
+  final String? originalContent;
+
+  const CreatePostView({super.key, this.isReply = false, this.originalUser, this.originalContent});
 
   @override
   State<CreatePostView> createState() => _CreatePostViewState();
@@ -29,19 +32,26 @@ class _CreatePostViewState extends State<CreatePostView> {
         ),
 
         body: Container(
-            padding: const EdgeInsets.all(20),
+            width: double.infinity,
+            height: double.infinity,
             decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFFE94E77), Color(0xFF6A1B9A), Color(0xFF000000)],
+                image: DecorationImage(
+                    image: AssetImage('assets/Background_App.png'),
+                    fit: BoxFit.cover,
 
                 ),
             ),
 
             child: SafeArea(
+                child: Padding(
+                    padding: const EdgeInsets.all(20.0),
                 child: Column(
                     children: [
+                        if (widget.isReply && widget.originalUser != null) ...[
+                            _buildPreviewRespuesta(),
+                            const SizedBox(height: 20),
+                        ],
+
                 // Àrea de text
                 Expanded(
                 child: Container(
@@ -54,9 +64,11 @@ class _CreatePostViewState extends State<CreatePostView> {
                     controller: _textController,
                     maxLines: 10,
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                        hintText: "¿Qué está pasando en la sala?",
-                        hintStyle: TextStyle(color: Colors.white54),
+                    decoration: InputDecoration(
+                        hintText: widget.isReply
+                            ? "Escribe tu respuesta..."
+                            : "¿Qué está pasando en la sala?",
+                        hintStyle: const TextStyle(color: Colors.white54),
                         border: InputBorder.none,
 
                     ),
@@ -70,7 +82,7 @@ class _CreatePostViewState extends State<CreatePostView> {
         GestureDetector(
             onTap: () => setState(() => _imageSelected = !_imageSelected),
             child: Container(
-                height: 150,
+                height: 120,
                 width: double.infinity,
                 decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.05),
@@ -108,26 +120,45 @@ class _CreatePostViewState extends State<CreatePostView> {
                   Navigator.pop(context);
                 },
 
-                child: const Text("PUBLICAR",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                child: Text(widget.isReply ? "RESPONDER" : "PUBLICAR",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white)),
 
             ),
         ),
                     ],
                 ),
+                ),
             ),
         ),
     );
   }
+
+  // Mètode nou per mostrar el post que estem contestant
+  Widget _buildPreviewRespuesta() {
+      return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(15),
+              border: const Border(left: BorderSide(color: Color(0xFFE94E77), width: 4)),
+          ),
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+          Text("@${widget.originalUser}",
+              style: const TextStyle(
+                  color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
+
+                  const SizedBox(height: 4),
+                  Text(widget.originalContent ?? "Post original",
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white70, fontSize: 13)),
+              ],
+          ),
+      );
   }
-
-
-
-
-
-
-
-
-
-
-
+}
