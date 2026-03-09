@@ -1,4 +1,5 @@
 import 'package:flowvenue/view/socialFeedView_view.dart';
+import 'package:flowvenue/view/buscador_view.dart';
 import 'package:flutter/material.dart';
 
 import 'introduirCodi.dart';
@@ -198,7 +199,12 @@ class _PartyFeedViewState extends State<partyFeed_view> {
           padding: EdgeInsets.symmetric(vertical: 15),
 
         ),
-        onPressed: () {},
+        onPressed: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const SearchView()),
+          );
+        },
         child: Center(child: Text("Solicita una Canción!", style: TextStyle(
             fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white))),
       ),
