@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
+import 'package:flowvenue/view/login_view.dart';
 
 class introduirCodi extends StatefulWidget {
   const introduirCodi({super.key});
@@ -69,6 +70,12 @@ class _IntroduirCodiState extends State<introduirCodi> {
                           ),
                         ),
                       ),
+                      onCompleted: (pin) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LoginView()),
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 250),

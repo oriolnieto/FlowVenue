@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flowvenue/view/partyFeed_view.dart';
+
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -75,7 +77,12 @@ class _LoginViewState extends State<LoginView> {
                         foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const partyFeed_view()),
+                        );
+                      },
                       child: const Text('Acceder'),
                     ),
                   ),
