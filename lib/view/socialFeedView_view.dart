@@ -169,26 +169,38 @@ class _SocialFeedViewState extends State<SocialFeedView> {
 
     const SizedBox(height: 15),
 
-    // Botó Responde (Visualment actiu, però no fa res com demanaves)
-    Align(
-    alignment: Alignment.centerRight,
-    child: Container(
-    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-    decoration: BoxDecoration(
-    color: const Color(0xFFF1B1CB),
-    borderRadius: BorderRadius.circular(20),
-    ),
-    child: const Text(
-    "Responde →",
-    style: TextStyle(
-    color: Color(0xFFE94E77),
-    fontWeight: FontWeight.bold,
-    fontSize: 12
 
-    ),
-    ),
-    ),
-    ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreatePostView(
+                      isReply: true,
+                      originalUser: username,
+                      originalContent: content ?? "Post con imagen",
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1B1CB),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  "Responde →",
+                  style: TextStyle(
+                      color: Color(0xFFE94E77),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

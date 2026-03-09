@@ -15,6 +15,26 @@ class _CreatePostViewState extends State<CreatePostView> {
   final TextEditingController _textController = TextEditingController();
   bool _imageSelected = false;
 
+
+  void _enviarPost() {
+      if (_textController.text.isEmpty && !_imageSelected) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Escribe algo o añade una foto")),
+          );
+          return;
+      }
+
+      print("Enviant post...");
+      print("Contingut: ${_textController.text}");
+      print("Es resposta: ${widget.isReply}");
+      if (widget.isReply) print("Responent a: ${widget.originalUser}");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(widget.isReply ? "Respuesta enviada!" : "Post publicado!")),
+      );
+      Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,6 +80,8 @@ class _CreatePostViewState extends State<CreatePostView> {
                   color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
+
+
                 child: TextField(
                     controller: _textController,
                     maxLines: 10,
