@@ -29,6 +29,41 @@ class _IntroduirCodiState extends State<introduirCodi> {
             ),
           ),
 
+          Positioned(
+            top: 50, // Ajuste para la barra de estado
+            right: 20,
+            child: GestureDetector(
+              onTap: () {
+                // Navegación hacia buscador_view.dart
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const buscador_view()),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9), // Fondo circular blanco
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    )
+                  ],
+                ),
+                child: const Icon(
+                  Icons.search,
+                  color: Colors.black, // Icono de lupa negra
+                  size: 24,
+                ),
+              ),
+            ),
+          ),
+
+
+
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
