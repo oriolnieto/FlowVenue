@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "977974701135",
+    "project_id": "flowvenue-99a94",
+    "storage_bucket": "flowvenue-99a94.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:977974701135:android:c6df8ae6ae6ab36a780e3a",
+        "android_client_info": {
+          "package_name": "com.example.flowvenue"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDj7okaJ-1eNmoO17KhgVaBHiXURIw5ovA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
