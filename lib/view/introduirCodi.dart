@@ -30,6 +30,41 @@ class _IntroduirCodiState extends State<introduirCodi> {
             ),
           ),
 
+          // 2. BOTÓ DE PERFIL (Dalt a l'esquerra)
+          Positioned(
+            top: 50,
+            left: 20, // Posicionat a l'esquerra
+            child: GestureDetector(
+              onTap: () {
+                // Aquí aniria la navegació a la teva vista de configuració de perfil
+                /* Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PerfilConfigView()),
+                ); */
+                
+              },
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    )
+                  ],
+                ),
+                child: const Icon(
+                  Icons.person, // Icona de perfil
+                  color: Colors.black,
+                  size: 24,
+                ),
+              ),
+            ),
+          ),
+
           Positioned(
             top: 50, // Ajuste para la barra de estado
             right: 20,
