@@ -1,3 +1,4 @@
+import 'package:flowvenue/view/buscador_festa_view.dart';
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 import 'package:flowvenue/view/login_view.dart';
@@ -37,7 +38,7 @@ class _IntroduirCodiState extends State<introduirCodi> {
                 // Navegación hacia buscador_view.dart
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const buscador_view()),
+                  MaterialPageRoute(builder: (context) => const buscador_festa_view()),
                 );
               },
               child: Container(
