@@ -1,4 +1,5 @@
 import 'package:flowvenue/view/buscador_festa_view.dart';
+import 'package:flowvenue/view/profile_config_view.dart';
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 import 'package:flowvenue/view/login_view.dart';
@@ -37,10 +38,11 @@ class _IntroduirCodiState extends State<introduirCodi> {
             child: GestureDetector(
               onTap: () {
                 // Aquí aniria la navegació a la teva vista de configuració de perfil
-                /* Navigator.push(
+                Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const PerfilConfigView()),
-                ); */
+                  MaterialPageRoute(
+                      builder: (context) => const PerfilConfigView(rol: "Usuario")),
+                );
 
               },
               child: Container(
