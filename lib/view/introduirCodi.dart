@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 import 'package:flowvenue/view/login_view.dart';
 import 'package:flowvenue/services/db_services.dart';
-import 'package:flowvenue/model/party_model.dart';
 
 class introduirCodi extends StatefulWidget {
   const introduirCodi({super.key});
@@ -151,14 +150,12 @@ class _IntroduirCodiState extends State<introduirCodi> {
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Codi invàlid o festa inactiva')),
+                            const SnackBar(content: Text('Codi invàlid o festa inactiva!')),
                           );
                         }
                       },
                     ),
-
                     const SizedBox(height: 250),
-
                   ],
                 ),
               ),

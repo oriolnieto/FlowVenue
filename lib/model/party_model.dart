@@ -57,7 +57,7 @@ class Festa {
       'name': name,
       'actividad': actividad,
       'tipo_festa': tipoFesta,
-      'fecha_evento': fechaEvento.toIso8601String(),
+      'fecha_evento': fechaEvento.toIso8601String(), // per a retornar la data si fos necessari en un format adequat en temps real
     };
   }
 }
