@@ -95,10 +95,27 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
           ),
           Image.asset(
             'assets/Logo_FlowVenue.png',
-            height: 400,
-            width: 350,
+            height: 60,
+            fit: BoxFit.contain,
+
           ),
-          const SizedBox(width: 40), // Equilibri per al botó de tornada
+
+          // Botó Agenda
+          CircleAvatar(
+            backgroundColor: Colors.white,
+            radius: 20,
+            child: IconButton(
+              icon: const Icon(Icons.calendar_month, color: Colors.black, size: 20),
+              onPressed: () {
+                print("Obrint agenda d'esdeveniments...");
+                /* Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AgendaView())
+              );
+              */
+              },
+            ),
+          ),
         ],
       ),
     );
