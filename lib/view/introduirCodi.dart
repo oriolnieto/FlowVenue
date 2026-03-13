@@ -42,7 +42,7 @@ class _IntroduirCodiState extends State<introduirCodi> {
                   context,
                   MaterialPageRoute(builder: (context) => const PerfilConfigView()),
                 ); */
-                
+
               },
               child: Container(
                 padding: const EdgeInsets.all(10),
