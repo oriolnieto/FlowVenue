@@ -11,25 +11,83 @@ class _AgendaViewState extends State<AgendaView> {
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
 
-  // Funció per mostrar el Pop-up de selecció de dia i hora
+  // Simulació de dades: Map on la clau és el dia (YYYY-MM-DD) i el valor una llista d'etiquetes
+  final Map<String, List<String>> _etiquetesPerDia = {
+    "2026-03-12": ["Mandanga Meme Party - 23:00", "Recollir entrades"],
+    "2026-03-15": ["Sopar FlowVenue", "Aniversari Jan"],
+    "2026-03-20": ["Concert Alvama Ice"],
+  };
+
+  // 1. POP-UP PER VEURE ETIQUETES EXISTENTS
+  void _mostrarEtiquetesDelDia(DateTime date) {
+    String dateKey = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    List<String> etiquetes = _etiquetesPerDia[dateKey] ?? [];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.event_note, color: Color(0xFFE94E77)),
+              const SizedBox(width: 10),
+              Text("Día ${date.day}/${date.month}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: etiquetes.isEmpty
+                ? const Text("No hay etiquetas para este día.",
+                style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey))
+                : ListView.builder(
+              shrinkWrap: true,
+              itemCount: etiquetes.length,
+              itemBuilder: (context, index) {
+                return Card(
+                  color: const Color(0xFFF1B1CB).withOpacity(0.3),
+                  elevation: 0,
+                  margin: const EdgeInsets.symmetric(vertical: 5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  child: ListTile(
+                    leading: const Icon(Icons.label, color: Color(0xFFE94E77), size: 20),
+                    title: Text(etiquetes[index], style: const TextStyle(fontSize: 14)),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cerrar", style: TextStyle(color: Color(0xFFE94E77))),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 2. POP-UP PER AFEGIR UNA NOVA ETIQUETA
   Future<void> _showAddLabelDialog() async {
     return showDialog<void>(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: const Text('Afegir Etiqueta',
-                  style: TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
-              content: SingleChildScrollView(
-                child: ListBody(
-                    children: <Widget>[
-                const Text('Selecciona el moment per a la teva etiqueta:'),
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Añadir Etiqueta',
+              style: TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                const Text('Selecciona el momento para tu etiqueta:'),
                 const SizedBox(height: 20),
-                // Botó Seleccionar Dia
+                // Seleccionar Dia
                 ElevatedButton.icon(
                   icon: const Icon(Icons.calendar_today),
-                  label: const Text("Seleccionar Dia"),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF1B1CB)),
+                  label: const Text("Seleccionar Día"),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF1B1CB), foregroundColor: Colors.black),
                   onPressed: () async {
                     final DateTime? picked = await showDatePicker(
                       context: context,
@@ -40,61 +98,60 @@ class _AgendaViewState extends State<AgendaView> {
                     if (picked != null) setState(() => _selectedDate = picked);
                   },
                 ),
-
-                      // Botó Seleccionar Hora
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.access_time),
-                        label: const Text("Seleccionar Hora"),
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF1B1CB)),
-                        onPressed: () async {
-                          final TimeOfDay? picked = await showTimePicker(
-                            context: context,
-                            initialTime: _selectedTime,
-                          );
-                          if (picked != null) setState(() => _selectedTime = picked);
-                        },
-                      ),
-                    ],
+                const SizedBox(height: 10),
+                // Seleccionar Hora
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.access_time),
+                  label: const Text("Seleccionar Hora"),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF1B1CB), foregroundColor: Colors.black),
+                  onPressed: () async {
+                    final TimeOfDay? picked = await showTimePicker(
+                      context: context,
+                      initialTime: _selectedTime,
+                    );
+                    if (picked != null) setState(() => _selectedTime = picked);
+                  },
                 ),
-              ),
-
-            actions: <Widget>[
-              TextButton(
-                child: const Text('Cancel·lar', style: TextStyle(color: Colors.grey)),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              TextButton(
-                child: const Text('Guardar', style: TextStyle(color: Color(0xFFE94E77))),
-                onPressed: () {
-                  // Aquí guardaries l'etiqueta
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Etiqueta afegida correctament'))
-                  );
-                },
-              ),
-            ],
-          );
-        },
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Guardar', style: TextStyle(color: Color(0xFFE94E77))),
+              onPressed: () {
+                // Aquí aniria la lògica per guardar l'etiqueta al Map o Firebase
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Etiqueta añadida correctamente'))
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/Background_App.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: SafeArea(
-              child: Column(
-                  children: [
-                  _buildHeader(),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/Background_App.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: Text(
@@ -122,36 +179,38 @@ class _AgendaViewState extends State<AgendaView> {
                     lastDate: DateTime(2101),
                     onDateChanged: (date) {
                       setState(() => _selectedDate = date);
+                      // Quan es clica un dia, mostrem les etiquetes d'aquell dia
+                      _mostrarEtiquetesDelDia(date);
                     },
                   ),
                 ),
               ),
 
-                    // BOTÓ AFEGIR ETIQUETA
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: ElevatedButton.icon(
-                        onPressed: _showAddLabelDialog,
-                        icon: const Icon(Icons.add_circle_outline, color: Colors.white),
-                        label: const Text("Añadir Etiqueta",
-                            style: TextStyle(color: Colors.white, fontSize: 18)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD988B9),
-                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        ),
-                      ),
-                    ),
-
-                    const Text(
-                      "©2026 FlowVenue by Oriol&Jan",
-                      style: TextStyle(color: Colors.white54, fontSize: 10),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
+              // BOTÓ AFEGIR ETIQUETA
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: ElevatedButton.icon(
+                  onPressed: _showAddLabelDialog,
+                  icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                  label: const Text("Añadir Etiqueta",
+                      style: TextStyle(color: Colors.white, fontSize: 18)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD988B9),
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                ),
               ),
-            ),
+
+              const Text(
+                "©2026 FlowVenue by Oriol&Jan",
+                style: TextStyle(color: Colors.white54, fontSize: 10),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
+      ),
     );
   }
 
