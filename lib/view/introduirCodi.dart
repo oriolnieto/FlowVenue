@@ -2,9 +2,12 @@ import 'package:flowvenue/view/buscador_festa_view.dart';
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 import 'package:flowvenue/view/login_view.dart';
+import 'package:flowvenue/services/db_services.dart';
+import 'package:flowvenue/model/party_model.dart';
 
 class introduirCodi extends StatefulWidget {
   const introduirCodi({super.key});
+
 
   @override
   State<introduirCodi> createState() => _IntroduirCodiState();
@@ -29,11 +32,9 @@ class _IntroduirCodiState extends State<introduirCodi> {
               fit: BoxFit.cover,
             ),
           ),
-
-          // 2. BOTÓ DE PERFIL (Dalt a l'esquerra)
           Positioned(
             top: 50,
-            left: 20, // Posicionat a l'esquerra
+            left: 20,
             child: GestureDetector(
               onTap: () {
                 // Aquí aniria la navegació a la teva vista de configuració de perfil
@@ -57,7 +58,7 @@ class _IntroduirCodiState extends State<introduirCodi> {
                   ],
                 ),
                 child: const Icon(
-                  Icons.person, // Icona de perfil
+                  Icons.person,
                   color: Colors.black,
                   size: 24,
                 ),
@@ -66,11 +67,10 @@ class _IntroduirCodiState extends State<introduirCodi> {
           ),
 
           Positioned(
-            top: 50, // Ajuste para la barra de estado
+            top: 50,
             right: 20,
             child: GestureDetector(
               onTap: () {
-                // Navegación hacia buscador_view.dart
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const buscador_festa_view()),
@@ -79,7 +79,7 @@ class _IntroduirCodiState extends State<introduirCodi> {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9), // Fondo circular blanco
+                  color: Colors.white.withOpacity(0.9),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -141,11 +141,19 @@ class _IntroduirCodiState extends State<introduirCodi> {
                           ),
                         ),
                       ),
-                      onCompleted: (pin) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginView()),
-                        );
+                      onCompleted: (pin) async {
+                        final festa = await DbServices().getFestaByAccessCode(int.parse(pin));
+
+                        if (festa != null) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => LoginView(festa: festa)),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Codi invàlid o festa inactiva')),
+                          );
+                        }
                       },
                     ),
 

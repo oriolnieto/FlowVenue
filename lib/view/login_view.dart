@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flowvenue/view/partyFeed_view.dart';
+import 'package:flowvenue/model/party_model.dart';
+
 
 
 class LoginView extends StatefulWidget {
-  const LoginView({super.key});
+  final Festa festa;
+  const LoginView({super.key, required this.festa});
+
 
   @override
   State<LoginView> createState() => _LoginViewState();
 }
 
 class _LoginViewState extends State<LoginView> {
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
