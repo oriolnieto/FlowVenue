@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'agenda_view.dart';
+
 class PerfilConfigView extends StatefulWidget {
   final String rol; // "Usuario", "Artista" o "Servicio"
 
@@ -127,7 +129,10 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
             left: 10, // A l'esquerra
             bottom: 10,
             child: _buildFloatingButton(Icons.calendar_month, () {
-              print("Anant a l'agenda...");
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AgendaView()),
+              );
             }),
           ),
 

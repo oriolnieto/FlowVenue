@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'agenda_view.dart';
+
 class buscador_festa_view extends StatefulWidget {
   const buscador_festa_view({super.key});
 
@@ -108,11 +110,11 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
               icon: const Icon(Icons.calendar_month, color: Colors.black, size: 20),
               onPressed: () {
                 print("Obrint agenda d'esdeveniments...");
-                /* Navigator.push(
+                Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const AgendaView())
               );
-              */
+
               },
             ),
           ),
