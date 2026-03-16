@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flowvenue/view/partyFeed_view.dart';
 import 'package:flowvenue/model/party_model.dart';
-
+import 'package:flowvenue/services/db_services.dart';
 
 
 class LoginView extends StatefulWidget {
@@ -14,6 +14,9 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
+  final TextEditingController _userController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final DbServices _dbServices = DbServices();
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +46,7 @@ class _LoginViewState extends State<LoginView> {
               child: Column(
                 children: [
                   TextField(
+                    controller: _userController,
                     decoration: InputDecoration(
                       hintText: 'Usuario',
                       hintStyle: const TextStyle(color: Colors.white70),
@@ -59,6 +63,7 @@ class _LoginViewState extends State<LoginView> {
 
                   TextField(
                     obscureText: true,
+                    controller: _passwordController,
                     decoration: InputDecoration(
                       hintText: 'Contraseña',
                       hintStyle: const TextStyle(color: Colors.white70),
@@ -82,11 +87,30 @@ class _LoginViewState extends State<LoginView> {
                         foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const partyFeed_view()),
-                        );
+                      onPressed: () async {
+                        String username = _userController.text.trim();
+                        String password = _passwordController.text.trim();
+
+                        if (username.isEmpty || password.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Escriu usuari i contrasenya')),
+                          );
+                          return;
+                        }
+                        final usuari = await _dbServices.login(username, password);
+
+                        if (usuari != null) {
+                          if (!mounted) return;
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => const partyFeed_view()),
+                          );
+                        } else {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Usuari o contrasenya incorrectes')),
+                          );
+                        }
                       },
                       child: const Text('Acceder'),
                     ),
