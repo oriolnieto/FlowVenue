@@ -7,7 +7,10 @@ class Usuari {
   final String password;
   final String email;
   final String role;
+
+  final int phone;
   final List<String> favouriteGeneres;
+
 
   Usuari({
     required this.userId,
@@ -16,7 +19,10 @@ class Usuari {
     required this.password,
     required this.email,
     required this.role,
+    required this.phone,
     required this.favouriteGeneres,
+
+
   });
 
   factory Usuari.fromFirestore(DocumentSnapshot doc) {
@@ -28,6 +34,7 @@ class Usuari {
       password: data['password'] ?? '',
       email: data['email'] ?? '',
       role: data['role'] ?? 'user',
+      phone:  data['phone'] ?? 685778546,
       favouriteGeneres: List<String>.from(data['favourite_generes'] ?? []),
     );
   }
@@ -39,11 +46,17 @@ class Usuari {
       'password': password,
       'email': email,
       'role': role,
+      'phone': phone,
       'favourite_generes': favouriteGeneres,
     };
   }
 
-  bool isAdmin() {
-    return role.toLowerCase() == 'servei';
+
+  bool isUsuari() => role.toLowerCase() == 'usuario';
+
+  bool isArtista() => role.toLowerCase() == 'artista';
+
+  bool isServei() {
+    return role.toLowerCase() == 'servicio';
   }
 }

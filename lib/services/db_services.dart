@@ -60,7 +60,8 @@ class DbServices {
         username: username.trim(),
         password: password,
         email: '',
-        role: 'user',
+        role: 'usuario',
+        phone: 0,
         favouriteGeneres: [],
       );
 
@@ -70,6 +71,17 @@ class DbServices {
     } catch (e) {
       print('Error creant el doc a Firestore: $e');
       return null;
+    }
+  }
+
+  Future<bool> updatePerfil (Usuari usuario) async {
+    try {
+      await _db.collection('users').doc(usuario.userId).update(usuario.toFirestore());
+      return true;
+
+    } catch (e) {
+      print('Error actualitzant perfil: $e');
+      return false;
     }
   }
 }
