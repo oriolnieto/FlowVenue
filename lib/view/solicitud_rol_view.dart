@@ -78,7 +78,7 @@ class _solicitud_rol_viewState extends State<solicitud_rol_view> {
           print("Sol·licitud enviada per a ser $_rolDesitjat. Raó: ${_raoController.text}");
 
           Navigator.of(context).pop(); // Tanca el pop-up
-          Navigator.of(context).pop(); // Torna a la pantalla de Perfil
+          Navigator.of(context).pop(_rolDesitjat); // Torna a la pantalla de Perfil
 
           ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Solicitud enviada correctamente.'), backgroundColor: Colors.green),

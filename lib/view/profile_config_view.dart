@@ -20,10 +20,13 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
   String _selectedLanguage = 'Español';
   final List<String> _languages = ['Español', 'Català', 'English'];
 
+  late Usuari _usuariLocal;
+
   @override
   void initState() {
     super.initState();
     // Carreguem les dades reals de l'usuari als controladors
+    _usuariLocal = widget.usuariActual;
     _nameController = TextEditingController(text: widget.usuariActual.username);
 
     String textTelefon = widget.usuariActual.phone == 0 ? '' : widget.usuariActual.phone.toString();
@@ -41,8 +44,8 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
   Widget build(BuildContext context) {
     // Verificació de permisos segons el rol
 
-    bool isServei = widget.usuariActual.isServei();
-    bool isArtista = widget.usuariActual.isArtista();
+    bool isServei = _usuariLocal.isServei();
+    bool isArtista = _usuariLocal.isArtista();
 
 
     return Scaffold(
@@ -75,25 +78,41 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
                     _buildLanguageDropdown(),
 
                     _buildTextField("Num.Telefono", _phoneController, Icons.edit),
-                    _buildReadOnlyField("Rol", widget.usuariActual.role.toUpperCase()),
+                    _buildReadOnlyField("Rol", _usuariLocal.role.toUpperCase()),
 
                     const SizedBox(height: 15),
 
                     // Botó per sol·licitar canvi de rol
                           TextButton(
-                            onPressed: () {
-                              Navigator.push(
+                            onPressed: () async {
+                              // 1. Esperem a veure què retorna la pantalla
+                              final String? nouRol = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => solicitud_rol_view(usuariActual: widget.usuariActual),
+                                  builder: (context) => solicitud_rol_view(usuariActual: _usuariLocal),
                                 ),
                               );
+
+                              // 2. Si ha retornat un rol nou (si l'usuari ha clicat "Sí, enviar")
+                              if (nouRol != null) {
+                                setState(() {
+                                  // 3. Actualitzem l'usuari local amb el nou rol. La pantalla es repintarà.
+                                  _usuariLocal = Usuari(
+                                    userId: _usuariLocal.userId,
+                                    userIdInt: _usuariLocal.userIdInt,
+                                    username: _usuariLocal.username,
+                                    password: _usuariLocal.password,
+                                    email: _usuariLocal.email,
+                                    role: nouRol, // <-- AQUÍ APLIQUEM EL CANVI
+                                    phone: _usuariLocal.phone,
+                                    favouriteGeneres: _usuariLocal.favouriteGeneres,
+                                  );
+                                });
+                              }
                             },
                             child: const Text("Solicitar cambio de rol",
                                 style: TextStyle(color: Colors.white, decoration: TextDecoration.underline, fontSize: 12)),
                           ),
-
-                    const SizedBox(height: 20),
 
                           // BOTONS CONDICIONALS SEGONS EL ROL
                           if (isServei)
