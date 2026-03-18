@@ -49,11 +49,8 @@ class spotifyServices {
         final tokenData = jsonDecode(tokenResponse.body);
         final accessToken = tokenData['access_token'];
 
-        final searchUrl = Uri.parse('https://api.spotify.com/v1/search?q=$query&type=track&limit=15');
-        final searchResponse = await http.get(
-          searchUrl,
-          headers: {'Authorization': 'Bearer $accessToken'},
-        );
+        final searchUrl = Uri.parse('https://api.spotify.com/v1/search?q=$query&type=track&limit=5');
+        final searchResponse = await http.get(searchUrl, headers: {'Authorization': 'Bearer $accessToken'},);
 
         if (searchResponse.statusCode == 200) {
           final searchData = jsonDecode(searchResponse.body);
