@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flowvenue/model/users_model.dart';
-
+import 'package:flowvenue/view/solicitud_rol_view.dart';
 import 'agenda_view.dart';
 
 class PerfilConfigView extends StatefulWidget {
@@ -80,12 +80,18 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
                     const SizedBox(height: 15),
 
                     // Botó per sol·licitar canvi de rol
-                    TextButton(
-                      onPressed: () => print("Accediendo a solicitud de rol"),
-
-                      child: const Text("Solicitar cambio de rol",
-                          style: TextStyle(color: Colors.white, decoration: TextDecoration.underline, fontSize: 12)),
-                    ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => solicitud_rol_view(usuariActual: widget.usuariActual),
+                                ),
+                              );
+                            },
+                            child: const Text("Solicitar cambio de rol",
+                                style: TextStyle(color: Colors.white, decoration: TextDecoration.underline, fontSize: 12)),
+                          ),
 
                     const SizedBox(height: 20),
 
