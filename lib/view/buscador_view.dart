@@ -85,13 +85,11 @@ class _SearchViewState extends State<SearchView> {
               const CircularProgressIndicator(color: Colors.pinkAccent)
             else
               Expanded(
-                child: _foundSongs.isNotEmpty
-                    ? ListView.builder(
+                child: _foundSongs.isNotEmpty ? ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: _foundSongs.length,
                   itemBuilder: (context, index) {
                     final song = _foundSongs[index];
-
                     return Card( // retornem en forma de cards, esteticament basic de moment
                       color: Colors.white54,
                       elevation: 4,
@@ -100,7 +98,19 @@ class _SearchViewState extends State<SearchView> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: ListTile(
-                        leading: const Icon(Icons.music_note, color: Colors.pinkAccent),
+                        leading: song['cover'] != null && song['cover']!.isNotEmpty
+                            ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            song['cover']!,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.music_note, color: Colors.pinkAccent, size: 40),
+                          ),
+                        )
+                            : const Icon(Icons.music_note, color: Colors.pinkAccent, size: 40),
                         title: Text(
                           song['title']!,
                           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -110,7 +120,6 @@ class _SearchViewState extends State<SearchView> {
                         subtitle: Text(song['artist']!),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: () {
-                         // per a despres seleccionar i ficar a votacions
                         },
                       ),
                     );

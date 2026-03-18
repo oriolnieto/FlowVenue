@@ -57,10 +57,15 @@ class spotifyServices {
           final tracks = searchData['tracks']['items'] as List;
 
           return tracks.map((track) {
+            String coverUrl = '';
+            if (track['album']['images'] != null && track['album']['images'].isNotEmpty) {
+              coverUrl = track['album']['images'][0]['url'].toString();
+            }
             return {
               'title': track['name'].toString(),
               'artist': track['artists'][0]['name'].toString(),
               'uri': track['uri'].toString(),
+              'cover': coverUrl,
             };
           }).toList();
         }
