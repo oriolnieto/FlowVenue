@@ -76,6 +76,57 @@ class spotifyServices {
     return [];
   }
 
+
+  Future<List<Map<String, String>>> searchArtists(String query) async {
+    if (query.isEmpty) return [];
+
+    try {
+      const String clientId = 'c23d9c5e2c574f2caef31066aa6a361e';
+      const String clientSecret = 'e81e949f21ee4d61a6e0d4fdd1bcfd93';
+
+      String credentials = base64.encode(utf8.encode('$clientId:$clientSecret'));
+
+      // Fem servir l'URL oficial de Spotify per al token
+      final tokenResponse = await http.post(
+        Uri.parse('https://accounts.spotify.com/api/token'),
+        headers: {
+          'Authorization': 'Basic $credentials',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {'grant_type': 'client_credentials'},
+      );
+
+      if (tokenResponse.statusCode == 200) {
+        final tokenData = jsonDecode(tokenResponse.body);
+        final accessToken = tokenData['access_token'];
+
+        // Cerca només artistes (type=artist)
+        final searchUrl = Uri.parse('https://api.spotify.com/v1/search?q=$query&type=artist&limit=10');
+        final searchResponse = await http.get(searchUrl, headers: {'Authorization': 'Bearer $accessToken'});
+
+        if (searchResponse.statusCode == 200) {
+          final searchData = jsonDecode(searchResponse.body);
+          final artists = searchData['artists']['items'] as List;
+
+          return artists.map((artist) {
+            String coverUrl = '';
+            if (artist['images'] != null && artist['images'].isNotEmpty) {
+              coverUrl = artist['images'][0]['url'].toString(); // Agafem la imatge de l'artista
+            }
+            return {
+              'name': artist['name'].toString(),
+              'uri': artist['uri'].toString(),
+              'image': coverUrl,
+            };
+          }).toList();
+        }
+      }
+    } catch (e) {
+      print('Error buscant artistes: $e');
+    }
+    return [];
+  }
+
   Future<void> play(String spotifyUri) async => await SpotifySdk.play(spotifyUri: spotifyUri);
   Future<void> pause() async => await SpotifySdk.pause();
   Future<void> resume() async => await SpotifySdk.resume();

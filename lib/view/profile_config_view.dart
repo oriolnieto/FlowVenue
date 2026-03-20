@@ -1,3 +1,4 @@
+import 'package:flowvenue/view/crear_event_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flowvenue/model/users_model.dart';
 import 'package:flowvenue/view/solicitud_rol_view.dart';
@@ -117,7 +118,12 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
                           // BOTONS CONDICIONALS SEGONS EL ROL
                           if (isServei)
                             _buildActionBtn("+ Crear Evento", () {
-                              print("Navegant a Crear Evento...");
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CrearEventView(),
+                                ),
+                              );
                             }),
 
                           if (isArtista)
