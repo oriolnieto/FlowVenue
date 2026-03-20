@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flowvenue/view/buscar_artista_view.dart';
+
+import 'package:flowvenue/services/spotifyServices.dart';
 
 class CrearEventView extends StatefulWidget {
   const CrearEventView({super.key});
@@ -161,7 +164,7 @@ class _CrearEventViewState extends State<CrearEventView> {
 
                     _buildTextField("Precio", _precioController, keyboardType: TextInputType.number),
 
-                    _buildTextField("Artistas Invitados", _artistasController),
+                    _buildArtistasField(),
 
                     // CAMP CODI D'ACCÉS (Màxim 5, només números, avís si hi ha text)
                     _buildCodeField("Código de Acceso (max 5num)", _codigoController),
@@ -312,6 +315,50 @@ class _CrearEventViewState extends State<CrearEventView> {
               fillColor: Colors.white,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArtistasField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Artistas Invitados", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+          const SizedBox(height: 5),
+          TextField(
+            controller: _artistasController,
+            readOnly: true, // Bloquegem el teclat
+            onTap: () async {
+              // Naveguem i esperem resposta
+              final String? nomArtista = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BuscarArtistaView()),
+              );
+
+              // Si ha triat un artista, l'afegim al controlador
+              if (nomArtista != null) {
+                setState(() {
+                  if (_artistasController.text.isEmpty) {
+                    _artistasController.text = nomArtista;
+                  } else {
+                    _artistasController.text += ", $nomArtista"; // Afegim amb coma si ja n'hi ha un altre
+                  }
+                });
+              }
+            },
+            style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold), // Color rosa com demanes
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              hintText: "Toca para buscar artista",
+              hintStyle: const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal),
             ),
           ),
         ],
