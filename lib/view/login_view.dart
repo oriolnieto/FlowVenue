@@ -103,7 +103,7 @@ class _LoginViewState extends State<LoginView> {
                           if (!mounted) return;
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => const partyFeed_view()),
+                            MaterialPageRoute(builder: (context) => const partyFeed_view(idFesta: idFesta)),
                           );
                         } else {
                           if (!mounted) return;

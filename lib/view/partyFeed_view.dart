@@ -8,9 +8,11 @@ import 'introduirCodi.dart';
 
 class partyFeed_view extends StatefulWidget {
   final String urlLogo;
+  final String idFesta;
 
   const partyFeed_view({
     super.key,
+    required this.idFesta,
     this.urlLogo = 'https://h-chef.com/wp-content/uploads/2018/04/Razzmatazz.png',
   });
 
@@ -41,7 +43,7 @@ class _PartyFeedViewState extends State<partyFeed_view> {
 
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: _dbServices.escoltarVotacionsEnViu(),
+                  stream: _dbServices.escoltarVotacionsEnViu(widget.idFesta),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator(color: Colors.pinkAccent));
@@ -50,7 +52,17 @@ class _PartyFeedViewState extends State<partyFeed_view> {
                       return const Center(child: Text("Error carregant les cançons", style: TextStyle(color: Colors.white)));
                     }
 
-                    final documents = snapshot.data!.docs;
+                    // Obtenim els documents
+                    var documents = snapshot.data!.docs.toList();
+
+                    // 2. ORDENACIÓ LOCAL PER EVITAR ERRORS AMB FIREBASE
+                    documents.sort((a, b) {
+                      final dataA = a.data() as Map<String, dynamic>;
+                      final dataB = b.data() as Map<String, dynamic>;
+                      int votsA = dataA['votes'] ?? 0;
+                      int votsB = dataB['votes'] ?? 0;
+                      return votsB.compareTo(votsA); // Ordena de més vots a menys vots
+                    });
 
                     return ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -222,7 +234,7 @@ class _PartyFeedViewState extends State<partyFeed_view> {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onPressed: () {
-                _dbServices.votarCanco(docId);
+                _dbServices.votarCanco(widget.idFesta, docId);
               },
             ),
             const SizedBox(width: 7),
@@ -249,7 +261,7 @@ class _PartyFeedViewState extends State<partyFeed_view> {
           );
 
           if (novaCanco != null) {
-            _dbServices.solLicitardCanco(novaCanco);
+            _dbServices.solLicitardCanco(widget.idFesta, novaCanco);
           }
         },
         child: const Center(
