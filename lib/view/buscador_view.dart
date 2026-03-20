@@ -120,6 +120,7 @@ class _SearchViewState extends State<SearchView> {
                         subtitle: Text(song['artist']!),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: () {
+                          Navigator.pop(context, song);
                         },
                       ),
                     );

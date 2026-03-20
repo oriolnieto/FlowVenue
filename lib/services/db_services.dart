@@ -72,4 +72,43 @@ class DbServices {
       return null;
     }
   }
+
+  Stream<QuerySnapshot> escoltarVotacionsEnViu() {
+    return _db
+        .collection('votacions')
+        .orderBy('votes', descending: true)
+        .snapshots();
+  }
+
+  Future<void> solLicitardCanco(Map<String, dynamic> canco) async {
+    try {
+      String docId = canco['title'].toString().replaceAll('/', '-');
+
+      final docRef = _db.collection('votacions').doc(docId);
+      final docSnapshot = await docRef.get();
+
+      if (docSnapshot.exists) {
+        await docRef.update({'votes': FieldValue.increment(1)});
+      } else {
+        await docRef.set({
+          'title': canco['title'],
+          'artist': canco['artist'],
+          'cover': canco['cover'] ?? '',
+          'votes': 1,
+        });
+      }
+    } catch (e) {
+      print('Error sol·licitant cançó: $e');
+    }
+  }
+
+  Future<void> votarCanco(String docId) async {
+    try {
+      await _db.collection('votacions').doc(docId).update({
+        'votes': FieldValue.increment(1)
+      });
+    } catch (e) {
+      print('Error votant cançó: $e');
+    }
+  }
 }

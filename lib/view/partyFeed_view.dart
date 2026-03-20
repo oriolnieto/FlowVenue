@@ -1,69 +1,87 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flowvenue/view/socialFeedView_view.dart';
 import 'package:flowvenue/view/buscador_view.dart';
 import 'package:flutter/material.dart';
 
+import '../services/db_services.dart';
 import 'introduirCodi.dart';
 
 class partyFeed_view extends StatefulWidget {
   final String urlLogo;
 
- const partyFeed_view({
-   super.key,
-    this.urlLogo = 'https://h-chef.com/wp-content/uploads/2018/04/Razzmatazz.png' });
+  const partyFeed_view({
+    super.key,
+    this.urlLogo = 'https://h-chef.com/wp-content/uploads/2018/04/Razzmatazz.png',
+  });
 
   @override
   _PartyFeedViewState createState() => _PartyFeedViewState();
 }
 
 class _PartyFeedViewState extends State<partyFeed_view> {
+  final DbServices _dbServices = DbServices();
 
   @override
-  Widget build (BuildContext context) {
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: false,
       body: Container(
-        // Fons degradat segons la canço
-        decoration: BoxDecoration(
-
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFE94E77), Color(0xFF6A1B9A), Color(0xFF000000)],
-          ),
-          image: const DecorationImage(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
             image: AssetImage('assets/Background_App.png'),
             fit: BoxFit.cover,
-            // opacity: 0.4, // Descomenta aquesta línia si vols barrejar la imatge amb el gradient
           ),
         ),
-
         child: SafeArea(
           child: Column(
             children: [
               _constructorHeader(),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    _constructorPlayingNow(),
-                    SizedBox(height: 20),
-                    _constructorCartaVotacio(
-                        "HER", "Chase Atlantic", Color(0xFF9C27B0), "7"),
-                    _constructorCartaVotacio(
-                        "Telfon", "RAF Camora", Color(0xFF1A1A1A), "1"),
-                    _constructorCartaVotacio(
-                        "GOTTI", "6ix9ine", Colors.orangeAccent, "1",
-                        isGradient: true),
 
-                  ],
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _dbServices.escoltarVotacionsEnViu(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: Colors.pinkAccent));
+                    }
+                    if (snapshot.hasError) {
+                      return const Center(child: Text("Error carregant les cançons", style: TextStyle(color: Colors.white)));
+                    }
+
+                    final documents = snapshot.data!.docs;
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: documents.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return Column(
+                            children: [
+                              _constructorPlayingNow(),
+                              const SizedBox(height: 20),
+                            ],
+                          );
+                        }
+
+                        final doc = documents[index - 1];
+                        final cancoData = doc.data() as Map<String, dynamic>;
+
+                        return _constructorCartaVotacio(doc.id, cancoData);
+                      },
+                    );
+                  },
                 ),
               ),
 
               _constructorBotoBottom(),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text("©2026 FlowVenue by Oriol&Jan",
-                    style: TextStyle(color: Colors.white54, fontSize: 10)),
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text(
+                  "©2026 FlowVenue by Oriol&Jan",
+                  style: TextStyle(color: Colors.white54, fontSize: 10),
+                ),
               )
             ],
           ),
@@ -82,140 +100,166 @@ class _PartyFeedViewState extends State<partyFeed_view> {
             icon: const Icon(Icons.close, color: Colors.white),
             onPressed: () {
               Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const introduirCodi()),
-
+                context,
+                MaterialPageRoute(builder: (context) => const introduirCodi()),
               );
             },
           ),
-
-          // Imatge dinàmica del logo de la discoteca
-          Image.network(
-            widget.urlLogo,
-            height: 40,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => Icon(Icons.error, color: Colors.white),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Image.network(
+                widget.urlLogo,
+                height: 40,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.local_activity, color: Colors.white),
+              ),
+            ),
           ),
           IconButton(
-              icon: Icon(Icons.rss_feed, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const SocialFeedView()),
-                );
-              },
+            icon: const Icon(Icons.rss_feed, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SocialFeedView()),
+              );
+            },
           ),
         ],
       ),
     );
   }
-  
-  // Canço actual amb la seva paleta de colors
+
   Widget _constructorPlayingNow() {
-    return Container(
-      padding: EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(25),
+    return Card(
+      color: Colors.white54,
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
       ),
-
-      child: Column(
-        children: [
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: Image.network(
-                    'https://images.genius.com/f9b...', width: 80,
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Image.network(
+                    'https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b',
+                    width: 80,
                     height: 80,
-                    fit: BoxFit.cover),
-
-              ),
-              SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Boss", style: TextStyle(color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold)),
-                    Text("Lil Pump",
-                        style: TextStyle(color: Colors.white70, fontSize: 16)),
-                  ],
-
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 80,
+                      height: 80,
+                      color: Colors.grey[800],
+                      child: const Icon(Icons.music_note, color: Colors.white, size: 40),
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-
-          Slider(value: 0.4,
-              onChanged: (v) {},
-              activeColor: Colors.white,
-              inactiveColor: Colors.white24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [Text("00:47/2:14", style: TextStyle(color: Colors.white70, fontSize: 12))],
-    )
-        ],
+                const SizedBox(width: 15),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Boss", style: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text("Lil Pump", style: TextStyle(color: Colors.black54, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            Slider(value: 0.4, onChanged: (v) {}, activeColor: Colors.pinkAccent, inactiveColor: Colors.black12),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [Text("00:47/2:14", style: TextStyle(color: Colors.black54, fontSize: 12))],
+            )
+          ],
+        ),
       ),
     );
   }
 
-  Widget _constructorCartaVotacio(String title, String artist, Color color, String votes, {bool isGradient = false})  {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isGradient ? null : color.withOpacity(0.8),
-        gradient: isGradient ? LinearGradient(colors: [Colors.orange, Colors.pink]) : null,
+  Widget _constructorCartaVotacio(String docId, Map<String, dynamic> songData) {
+    return Card(
+      color: Colors.white54,
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
       child: ListTile(
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: Container(color: Colors.grey[800], width: 50, height: 50, child: Icon(Icons.music_note, color: Colors.white24)),
-
+          child: songData['cover'] != null && songData['cover'] != ''
+              ? Image.network(songData['cover'], width: 50, height: 50, fit: BoxFit.cover)
+              : Container(
+            color: Colors.black12,
+            width: 50,
+            height: 50,
+            child: const Icon(Icons.music_note, color: Colors.pinkAccent),
+          ),
         ),
-        title: Text(title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold )),
-        subtitle: Text(artist, style: TextStyle(color: Colors.white70)),
+        title: Text(
+          songData['title'] ?? 'Sense títol',
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          songData['artist'] ?? 'Desconegut',
+          style: const TextStyle(color: Colors.black54),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(votes, style: TextStyle(color: Colors.white)),
-      
+            IconButton(
+              icon: const Icon(Icons.arrow_upward_rounded, color: Colors.pink, size: 22),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () {
+                _dbServices.votarCanco(docId);
+              },
+            ),
+            const SizedBox(width: 7),
+            Text('${songData['votes'] ?? 0}', style: const TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
-      )
-    );      
+      ),
+    );
   }
-  
+
   Widget _constructorBotoBottom() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFFE94E77),
-          shape: StadiumBorder(),
-          padding: EdgeInsets.symmetric(vertical: 15),
-
+          backgroundColor: const Color(0xFFE94E77),
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(vertical: 15),
         ),
-        onPressed: () {
-          Navigator.pushReplacement(
+        onPressed: () async {
+          final novaCanco = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const SearchView()),
           );
+
+          if (novaCanco != null) {
+            _dbServices.solLicitardCanco(novaCanco);
+          }
         },
-        child: Center(child: Text("Solicita una Canción!", style: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white))),
+        child: const Center(
+          child: Text(
+            "Solicita una Canción!",
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+        ),
       ),
     );
   }
-
-
-
-
-  }
-
-  
-  
-  
+}
