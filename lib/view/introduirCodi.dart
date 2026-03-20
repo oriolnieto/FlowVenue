@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 import 'package:flowvenue/view/login_view.dart';
 import 'package:flowvenue/services/db_services.dart';
+import 'package:flowvenue/model/users_model.dart';
 
 class introduirCodi extends StatefulWidget {
   const introduirCodi({super.key});
@@ -20,6 +21,12 @@ class _IntroduirCodiState extends State<introduirCodi> {
   void initState() {
     super.initState();
   }
+  @override
+  void dispose() {
+    codiController.dispose();
+    super.dispose();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -37,11 +44,21 @@ class _IntroduirCodiState extends State<introduirCodi> {
             left: 20,
             child: GestureDetector(
               onTap: () {
-                // Aquí aniria la navegació a la teva vista de configuració de perfil
+                Usuari usuariTemporal = Usuari(
+                  userId: 'temp_id',
+                  userIdInt: 0,
+                  username: 'Invitado',
+                  password: '',
+                  email: '',
+                  role: 'usuario', // Pots canviar-ho a 'servicio' per provar el botó Crear Evento
+                  phone: 0,
+                  favouriteGeneres: [],
+                );
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const PerfilConfigView(rol: "Usuario")),
+                      builder: (context) => PerfilConfigView(usuariActual: usuariTemporal)),
                 );
 
               },

@@ -1,28 +1,52 @@
 import 'package:flutter/material.dart';
-
+import 'package:flowvenue/model/users_model.dart';
+import 'package:flowvenue/view/solicitud_rol_view.dart';
 import 'agenda_view.dart';
 
 class PerfilConfigView extends StatefulWidget {
-  final String rol; // "Usuario", "Artista" o "Servicio"
+  final Usuari usuariActual; // "Usuario", "Artista" o "Servicio"
 
-  const PerfilConfigView({super.key, required this.rol});
+  const PerfilConfigView({super.key, required this.usuariActual});
 
   @override
   State<PerfilConfigView> createState() => _PerfilConfigViewState();
 }
 
 class _PerfilConfigViewState extends State<PerfilConfigView> {
-  final TextEditingController _nameController = TextEditingController(text: "Jeffrey Epstein");
-  final TextEditingController _dniController = TextEditingController(text: "49421432F");
-  final TextEditingController _phoneController = TextEditingController(text: "+34 697 564 849");
+  late TextEditingController _nameController;
+
+  late TextEditingController _phoneController;
 
   String _selectedLanguage = 'Español';
   final List<String> _languages = ['Español', 'Català', 'English'];
 
+  late Usuari _usuariLocal;
+
+  @override
+  void initState() {
+    super.initState();
+    // Carreguem les dades reals de l'usuari als controladors
+    _usuariLocal = widget.usuariActual;
+    _nameController = TextEditingController(text: widget.usuariActual.username);
+
+    String textTelefon = widget.usuariActual.phone == 0 ? '' : widget.usuariActual.phone.toString();
+    _phoneController = TextEditingController(text: textTelefon);
+  }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+
   @override
   Widget build(BuildContext context) {
     // Verificació de permisos segons el rol
-    bool potCrearEvent = widget.rol == "Servicio";
+
+    bool isServei = _usuariLocal.isServei();
+    bool isArtista = _usuariLocal.isArtista();
+
 
     return Scaffold(
         body: Container(
@@ -52,37 +76,56 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
                     // Camps del formulari
                     _buildTextField("Usuario", _nameController, Icons.edit),
                     _buildLanguageDropdown(),
-                    _buildTextField("DNI", _dniController, Icons.edit),
+
                     _buildTextField("Num.Telefono", _phoneController, Icons.edit),
-                    _buildReadOnlyField("Rol", widget.rol),
+                    _buildReadOnlyField("Rol", _usuariLocal.role.toUpperCase()),
 
                     const SizedBox(height: 15),
 
                     // Botó per sol·licitar canvi de rol
-                    TextButton(
-                      onPressed: () => print("Accediendo a solicitud de rol"),
-                      child: const Text("Solicitar cambio de rol",
-                          style: TextStyle(color: Colors.white, decoration: TextDecoration.underline, fontSize: 12)),
-                    ),
+                          TextButton(
+                            onPressed: () async {
+                              // 1. Esperem a veure què retorna la pantalla
+                              final String? nouRol = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => solicitud_rol_view(usuariActual: _usuariLocal),
+                                ),
+                              );
 
-                    const SizedBox(height: 20),
+                              // 2. Si ha retornat un rol nou (si l'usuari ha clicat "Sí, enviar")
+                              if (nouRol != null) {
+                                setState(() {
+                                  // 3. Actualitzem l'usuari local amb el nou rol. La pantalla es repintarà.
+                                  _usuariLocal = Usuari(
+                                    userId: _usuariLocal.userId,
+                                    userIdInt: _usuariLocal.userIdInt,
+                                    username: _usuariLocal.username,
+                                    password: _usuariLocal.password,
+                                    email: _usuariLocal.email,
+                                    role: nouRol, // <-- AQUÍ APLIQUEM EL CANVI
+                                    phone: _usuariLocal.phone,
+                                    favouriteGeneres: _usuariLocal.favouriteGeneres,
+                                  );
+                                });
+                              }
+                            },
+                            child: const Text("Solicitar cambio de rol",
+                                style: TextStyle(color: Colors.white, decoration: TextDecoration.underline, fontSize: 12)),
+                          ),
 
-                    // Botó condicional segons el Rol
-                    if (potCrearEvent)
-                SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD988B9),
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          // BOTONS CONDICIONALS SEGONS EL ROL
+                          if (isServei)
+                            _buildActionBtn("+ Crear Evento", () {
+                              print("Navegant a Crear Evento...");
+                            }),
 
-                    ),
-                  onPressed: () => print(""),
-                  child: const Text("+ Crear Evento",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                ),
-            ),const SizedBox(height: 40),
+                          if (isArtista)
+                            _buildActionBtn("Promocionarme", () {
+                              print("Navegant a Promocionarme...");
+                            }),
+
+                          const SizedBox(height: 40),
                           const Text("©2026 FlowVenue by Oriol&Jan",
                               style: TextStyle(color: Colors.white54, fontSize: 10)),
                         ],
@@ -90,6 +133,22 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
                 ),
             ),
         ),
+    );
+  }
+
+  Widget _buildActionBtn(String text, VoidCallback onPressed) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFD988B9),
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        ),
+        onPressed: onPressed,
+        child: Text(text,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+      ),
     );
   }
 
