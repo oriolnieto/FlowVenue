@@ -2,6 +2,7 @@ import 'package:flowvenue/view/crear_event_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flowvenue/model/users_model.dart';
 import 'package:flowvenue/view/solicitud_rol_view.dart';
+import 'package:flowvenue/view/promocionarme_view.dart';
 import 'agenda_view.dart';
 
 class PerfilConfigView extends StatefulWidget {
@@ -128,9 +129,13 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
 
                           if (isArtista)
                             _buildActionBtn("Promocionarme", () {
-                              print("Navegant a Promocionarme...");
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const PromocionarmeView(),
+                                ),
+                              );
                             }),
-
                           const SizedBox(height: 40),
                           const Text("©2026 FlowVenue by Oriol&Jan",
                               style: TextStyle(color: Colors.white54, fontSize: 10)),

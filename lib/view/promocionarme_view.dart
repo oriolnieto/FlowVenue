@@ -189,7 +189,7 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
           // ESTILS DEL CALENDARI
           calendarStyle: const CalendarStyle(
             selectedDecoration: BoxDecoration(
-              color: Color(0xFFE94E77), // EL COLOR ROSA 
+              color: Color(0xFFE94E77), // EL COLOR ROSA
               shape: BoxShape.circle,
             ),
             todayDecoration: BoxDecoration(
