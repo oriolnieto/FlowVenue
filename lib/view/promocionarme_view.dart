@@ -14,7 +14,7 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
   late TextEditingController _nombreController;
   final TextEditingController _descripcioController = TextEditingController();
 
-  final Map<DateTime, List<String>> _eventsPerDia = {};
+  final Map<DateTime, List<Map<String, String>>> _eventsPerDia = {};
   DateTime _focusedDay = DateTime.now();
 
   @override
@@ -40,12 +40,14 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
     TextEditingController _nuevoEventoController = TextEditingController();
     bool isAdding = false;
 
+    TimeOfDay? _selectedTime;
+
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
-            List<String> eventosDelDia = _eventsPerDia[normalizedDay] ?? [];
+            List<Map<String, String>> eventosDelDia = _eventsPerDia[normalizedDay] ?? [];
 
             return AlertDialog(
               backgroundColor: Colors.white,
@@ -69,13 +71,14 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                         shrinkWrap: true,
                         itemCount: eventosDelDia.length,
                         itemBuilder: (context, index) {
+                          final evento = eventosDelDia[index];
                           return Card(
                             color: const Color(0xFFF1B1CB),
                             margin: const EdgeInsets.only(bottom: 10),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             child: ListTile(
-                              title: Text(eventosDelDia[index], style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                              subtitle: Text("${diaSeleccionat.day}/${diaSeleccionat.month}/${diaSeleccionat.year}", style: const TextStyle(color: Colors.white70)),
+                              title: Text(evento['nombre']!, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                              subtitle: Text("${diaSeleccionat.day}/${diaSeleccionat.month}/${diaSeleccionat.year} - ${evento['hora']}", style: const TextStyle(color: Colors.white70)),
                               trailing: IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.white),
                                 onPressed: () {
@@ -95,31 +98,70 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                     if (isAdding)
                       Padding(
                         padding: const EdgeInsets.only(top: 10),
-                        child: TextField(
-                          controller: _nuevoEventoController,
-                          style: const TextStyle(color: Color(0xFFE94E77)),
-                          decoration: InputDecoration(
-                            hintText: "Escribe el nombre...",
-                            filled: true,
-                            fillColor: Colors.grey[100],
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.check_circle, color: Color(0xFFE94E77), size: 30),
-                              onPressed: () {
-                                if (_nuevoEventoController.text.isNotEmpty) {
-                                  setStateDialog(() {
-                                    if (_eventsPerDia[normalizedDay] == null) {
-                                      _eventsPerDia[normalizedDay] = [];
-                                    }
-                                    _eventsPerDia[normalizedDay]!.add(_nuevoEventoController.text);
-                                    isAdding = false;
-                                    _nuevoEventoController.clear();
-                                  });
-                                  setState(() {});
-                                }
-                              },
+                        child: Column(
+                          children: [
+                            TextField(
+                              controller: _nuevoEventoController,
+                              style: const TextStyle(color: Color(0xFFE94E77)),
+                              decoration: InputDecoration(
+                                hintText: "Nombre de la fiesta...",
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFFE94E77),
+                                      side: const BorderSide(color: Color(0xFFE94E77)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                                    ),
+                                    icon: const Icon(Icons.access_time),
+                                    label: Text(_selectedTime != null ? _selectedTime!.format(context) : "Añadir Hora"),
+                                    onPressed: () async {
+                                      TimeOfDay? picked = await showTimePicker(
+                                        context: context,
+                                        initialTime: TimeOfDay.now(),
+                                      );
+                                      if (picked != null) {
+                                        setStateDialog(() { _selectedTime = picked; });
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                IconButton(
+                                  icon: const Icon(Icons.check_circle, color: Color(0xFFE94E77), size: 35),
+                                  onPressed: () {
+                                    // Només guardem si hi ha nom i hora
+                                    if (_nuevoEventoController.text.isNotEmpty && _selectedTime != null) {
+                                      setStateDialog(() {
+                                        if (_eventsPerDia[normalizedDay] == null) {
+                                          _eventsPerDia[normalizedDay] = [];
+                                        }
+                                        _eventsPerDia[normalizedDay]!.add({
+                                          'nombre': _nuevoEventoController.text,
+                                          'hora': _selectedTime!.format(context),
+                                        });
+                                        isAdding = false;
+                                        _nuevoEventoController.clear();
+                                        _selectedTime = null;
+                                      });
+                                      setState(() {});
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Por favor, añade un nombre y una hora.')),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                   ],
