@@ -11,38 +11,33 @@ class PromocionarmeView extends StatefulWidget {
 class _PromocionarmeViewState extends State<PromocionarmeView> {
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _descripcioController = TextEditingController();
+  final TextEditingController _spotifyUrlController = TextEditingController(); // NOU CAMP
 
-  // Aquí guardarem tots els dies que l'artista marqui com a disponibles/ocupats
-  final Map<DateTime , List<String>> _eventsPerDia = {};
+  final Map<DateTime, List<String>> _eventsPerDia = {};
   DateTime _focusedDay = DateTime.now();
 
   @override
   void dispose() {
     _nombreController.dispose();
     _descripcioController.dispose();
+    _spotifyUrlController.dispose();
     super.dispose();
   }
 
-  // Funció auxiliar per treure les hores/minuts i comparar només els dies
   DateTime _normalizeDate(DateTime date) {
     return DateTime(date.year, date.month, date.day);
   }
 
-  // --- FUNCIÓ QUE MOSTRA EL POP-UP ---
   void _mostrarPopUpEventos(DateTime diaSeleccionat) {
     DateTime normalizedDay = _normalizeDate(diaSeleccionat);
     TextEditingController _nuevoEventoController = TextEditingController();
-
-    // Controla si estem mostrant el camp per escriure un nou esdeveniment
     bool isAdding = false;
 
     showDialog(
       context: context,
       builder: (context) {
-        // Fem servir StatefulBuilder perquè el pop-up es pugui actualitzar a si mateix sense tancar-se
         return StatefulBuilder(
           builder: (context, setStateDialog) {
-            // Agafem els esdeveniments d'aquest dia o una llista buida
             List<String> eventosDelDia = _eventsPerDia[normalizedDay] ?? [];
 
             return AlertDialog(
@@ -57,14 +52,11 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Si no hi ha res i no estem afegint
                     if (eventosDelDia.isEmpty && !isAdding)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 10),
                         child: Text("Día libre. No hay eventos.", style: TextStyle(color: Colors.grey)),
                       ),
-
-                    // Llista d'Etiquetes (Esdeveniments afegits)
                     if (eventosDelDia.isNotEmpty)
                       ListView.builder(
                         shrinkWrap: true,
@@ -75,15 +67,9 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                             margin: const EdgeInsets.only(bottom: 10),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             child: ListTile(
-                              title: Text(
-                                  eventosDelDia[index],
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)
-                              ),
-                              subtitle: Text(
-                                  "${diaSeleccionat.day}/${diaSeleccionat.month}/${diaSeleccionat.year}",
-                                  style: const TextStyle(color: Colors.white70)
-                              ),
-                              trailing: IconButton( // Botó opcional per esborrar l'event
+                              title: Text(eventosDelDia[index], style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                              subtitle: Text("${diaSeleccionat.day}/${diaSeleccionat.month}/${diaSeleccionat.year}", style: const TextStyle(color: Colors.white70)),
+                              trailing: IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.white),
                                 onPressed: () {
                                   setStateDialog(() {
@@ -92,15 +78,13 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                                       _eventsPerDia.remove(normalizedDay);
                                     }
                                   });
-                                  setState(() {}); // Actualitza el calendari de sota
+                                  setState(() {});
                                 },
                               ),
                             ),
                           );
                         },
                       ),
-
-                    // Camp de text que apareix quan toquem "Añadir Evento"
                     if (isAdding)
                       Padding(
                         padding: const EdgeInsets.only(top: 10),
@@ -112,7 +96,7 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                             filled: true,
                             fillColor: Colors.grey[100],
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                            suffixIcon: IconButton( // Botó per confirmar l'afegit
+                            suffixIcon: IconButton(
                               icon: const Icon(Icons.check_circle, color: Color(0xFFE94E77), size: 30),
                               onPressed: () {
                                 if (_nuevoEventoController.text.isNotEmpty) {
@@ -124,7 +108,6 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                                     isAdding = false;
                                     _nuevoEventoController.clear();
                                   });
-                                  // Actualitzem la pantalla principal perquè el calendari es pinti rosa
                                   setState(() {});
                                 }
                               },
@@ -139,9 +122,7 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                 if (!isAdding)
                   TextButton(
                     onPressed: () {
-                      setStateDialog(() {
-                        isAdding = true; // Activa el camp de text
-                      });
+                      setStateDialog(() { isAdding = true; });
                     },
                     child: const Text("+ Añadir Evento", style: TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
                   ),
@@ -157,8 +138,6 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -171,7 +150,6 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
             fit: BoxFit.cover,
           ),
         ),
-
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -190,51 +168,49 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                 ),
                 const SizedBox(height: 30),
 
-                // CAMP NOM
                 _buildTextField("Nombre del Artista", _nombreController),
                 const SizedBox(height: 15),
 
-                // CAMP DESCRIPCIÓ
-                _buildTextField("Descripción", _descripcioController, maxLines: 4),
+                _buildTextField("Descripción", _descripcioController, maxLines: 3),
+                const SizedBox(height: 15),
+
+                // NOU CAMP SPOTIFY
+                _buildTextField("Enlace de Spotify", _spotifyUrlController, icon: Icons.link),
                 const SizedBox(height: 25),
 
-                // TÍTOL AGENDA
+                // LLISTA ESTIL SPOTIFY (Pròxims concerts)
+                _buildSpotifyTourList(),
+                const SizedBox(height: 25),
+
                 const Text(
                   "Agenda de Disponibilidad",
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 10),
 
-                // CALENDARI MULTI-DATA
                 _buildCalendari(),
 
                 const SizedBox(height: 40),
 
-                // BOTÓ GUARDAR
                 SizedBox(
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD988B9), // Rosa de l'app
+                      backgroundColor: const Color(0xFFD988B9),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       elevation: 5,
                     ),
                     onPressed: () {
                       print("Nom: ${_nombreController.text}");
-                      print("Descripció: ${_descripcioController.text}");
-                      // CORREGIT: Imprimim el mapa en lloc del Set
+                      print("Spotify URL: ${_spotifyUrlController.text}");
                       print("Events guardats: $_eventsPerDia");
 
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Perfil de artista actualizado correctamente'),
-                          backgroundColor: Colors.green,
-                        ),
+                        const SnackBar(content: Text('Perfil de artista actualizado'), backgroundColor: Colors.green),
                       );
                       Navigator.pop(context);
                     },
-
                     child: const Text(
                       "Guardar y Promocionarme",
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
@@ -265,12 +241,12 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
           ),
         ),
         Image.asset('assets/Logo_FlowVenue.png', height: 50),
-        const SizedBox(width: 40), // Per balancejar el botó de tirar enrere
+        const SizedBox(width: 40),
       ],
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {int maxLines = 1}) {
+  Widget _buildTextField(String label, TextEditingController controller, {int maxLines = 1, IconData? icon}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -283,6 +259,7 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
+            suffixIcon: icon != null ? Icon(icon, color: const Color(0xFFE94E77)) : null,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           ),
@@ -291,59 +268,115 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
     );
   }
 
+  // NOVA SECCIÓ: LLISTA DE CONCERTS ESTIL SPOTIFY
+  Widget _buildSpotifyTourList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text("De gira", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+            Text("Ver todos", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // Farem un llistat horitzontal simulant els concerts propers
+        SizedBox(
+          height: 80,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _buildConcertCard("may", "22", "Lleida", "Discoteca Biloba"),
+              const SizedBox(width: 15),
+              _buildConcertCard("may", "30", "Barcelona", "Razzmatazz"),
+              const SizedBox(width: 15),
+              _buildConcertCard("jun", "05", "Madrid", "Teatro Barceló"),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // TARGETA INDIVIDUAL D'UN CONCERT
+  Widget _buildConcertCard(String mes, String dia, String ciutat, String local) {
+    return Container(
+      width: 250,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6), // Fons fosc estil Spotify
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Row(
+        children: [
+          // Quadrat amb la data
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(mes.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                Text(dia, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 15),
+          // Informació del concert
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(ciutat, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text(local, style: const TextStyle(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCalendari() {
     return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      padding: const EdgeInsets.all(10),
+      child: TableCalendar(
+        firstDay: DateTime.now(),
+        lastDay: DateTime.now().add(const Duration(days: 365)),
+        focusedDay: _focusedDay,
+        selectedDayPredicate: (day) {
+          DateTime normalizedDay = _normalizeDate(day);
+          return _eventsPerDia.containsKey(normalizedDay) && _eventsPerDia[normalizedDay]!.isNotEmpty;
+        },
+        onDaySelected: (selectedDay, focusedDay) {
+          setState(() { _focusedDay = focusedDay; });
+          _mostrarPopUpEventos(selectedDay);
+        },
+        calendarStyle: const CalendarStyle(
+          selectedDecoration: BoxDecoration(color: Color(0xFFE94E77), shape: BoxShape.circle),
+          todayDecoration: BoxDecoration(color: Color(0xFFF1B1CB), shape: BoxShape.circle),
+          defaultTextStyle: TextStyle(color: Colors.black),
+          weekendTextStyle: TextStyle(color: Colors.black54),
         ),
-        padding: const EdgeInsets.all(10),
-        child: TableCalendar(
-          firstDay: DateTime.now(),
-          lastDay: DateTime.now().add(const Duration(days: 365)), // Permet fins a 1 any vista
-          focusedDay: _focusedDay,
-
-          // Aquí li diem quins dies han d'aparèixer com a "seleccionats"
-          selectedDayPredicate: (day) {
-            DateTime normalizedDay = _normalizeDate(day);
-            return _eventsPerDia.containsKey(normalizedDay) && _eventsPerDia[normalizedDay]!.isNotEmpty;
-          },
-
-          // Què passa quan l'usuari clica un dia
-          onDaySelected: (selectedDay, focusedDay) {
-            setState(() {
-              _focusedDay = focusedDay;
-
-
-            });
-            _mostrarPopUpEventos(selectedDay);
-            },
-
-          // ESTILS DEL CALENDARI
-          calendarStyle: const CalendarStyle(
-            selectedDecoration: BoxDecoration(
-              color: Color(0xFFE94E77), // EL COLOR ROSA
-              shape: BoxShape.circle,
-            ),
-            todayDecoration: BoxDecoration(
-              color: Color(0xFFF1B1CB), // Rosa més fluixet pel dia d'avui
-              shape: BoxShape.circle,
-            ),
-            defaultTextStyle: TextStyle(color: Colors.black),
-            weekendTextStyle: TextStyle(color: Colors.black54),
-          ),
-          headerStyle: const HeaderStyle(
-            formatButtonVisible: false,
-            titleCentered: true,
-            titleTextStyle: TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold, fontSize: 18),
-            leftChevronIcon: Icon(Icons.chevron_left, color: Color(0xFFE94E77)),
-            rightChevronIcon: Icon(Icons.chevron_right, color: Color(0xFFE94E77)),
-          ),
-          daysOfWeekStyle: const DaysOfWeekStyle(
-            weekdayStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-            weekendStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54),
-          ),
+        headerStyle: const HeaderStyle(
+          formatButtonVisible: false,
+          titleCentered: true,
+          titleTextStyle: TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold, fontSize: 18),
+          leftChevronIcon: Icon(Icons.chevron_left, color: Color(0xFFE94E77)),
+          rightChevronIcon: Icon(Icons.chevron_right, color: Color(0xFFE94E77)),
         ),
+        daysOfWeekStyle: const DaysOfWeekStyle(
+          weekdayStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          weekendStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54),
+        ),
+      ),
     );
   }
 }
