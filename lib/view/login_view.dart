@@ -99,11 +99,13 @@ class _LoginViewState extends State<LoginView> {
                         }
                         final usuari = await _dbServices.login(username, password);
 
+                        String idLaFesta = widget.festa.partyId;
+
                         if (usuari != null) {
                           if (!mounted) return;
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => const partyFeed_view(idFesta: idFesta)),
+                            MaterialPageRoute(builder: (context) => partyFeed_view(idFesta: idLaFesta)),
                           );
                         } else {
                           if (!mounted) return;

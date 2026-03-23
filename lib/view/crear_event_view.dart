@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flowvenue/view/buscar_artista_view.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flowvenue/model/party_model.dart';
 
 import 'package:flowvenue/services/spotifyServices.dart';
 
@@ -181,14 +183,62 @@ class _CrearEventViewState extends State<CrearEventView> {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                                 elevation: 5,
                               ),
-                              onPressed: () {
+                              onPressed: () async {
                                 // Aquí s'enviarien les dades a Firebase
-                                print("Creant festa: ${_nombreController.text}");
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Evento creado correctamente!'), backgroundColor: Colors.green),
-                                );
-                                Navigator.pop(context);
-                              },
+                                // 1. Validacions
+                                if (_nombreController.text.isEmpty ||
+                                    _fechaController.text.isEmpty ||
+                                    _codigoController.text.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text(
+                                        'Por favor, rellena los campos obligatorios'),
+                                        backgroundColor: Colors.green),
+                                  );
+                                  return;
+                                }
+
+                                try {
+                                  List<String> dateParts = _fechaController.text.split('/');
+                                  DateTime fechaFesta = DateTime(
+                                      int.parse(dateParts[2]),
+                                      int.parse(dateParts[1]),
+                                      int.parse(dateParts[0])
+                                  );
+
+                                  // 3. Crear objecte Festa sense el ID
+                                  Festa novaFesta = Festa(
+                                    partyId: '', // ID buit inicialment
+                                    serveiId: 1, // ID del Servei creador (agafar de l'usuari actual)
+                                    djId: 0,
+                                    codiAcces: int.parse(_codigoController.text),
+                                    name: _nombreController.text,
+                                    fechaEvento: fechaFesta,
+                                    actividad: true,
+                                    tipoFesta: [_artistasController.text],
+                                  );
+
+                                  // 4. Pujar a Firebase Firestore i obtenir el ID
+                                  DocumentReference docRef = await FirebaseFirestore.instance
+                                      .collection('festes')
+                                      .add(novaFesta.toFirestore());
+
+                                  print("Festa creada a Firebase! PartyID: ${docRef.id}");
+
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Evento creado correctamente!'), backgroundColor: Colors.green),
+                                  );
+
+                                  Navigator.pop(context);
+
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error al crear evento: $e'), backgroundColor: Colors.red),
+                                  );
+                                }
+
+                                },
+
                               child: const Text(
                                 "Crear Evento",
                                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
@@ -206,6 +256,8 @@ class _CrearEventViewState extends State<CrearEventView> {
         ),
     );
   }
+
+
 
   // --- WIDGETS AUXILIARS ---
 
