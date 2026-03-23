@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flowvenue/model/users_model.dart';
 import 'package:flowvenue/view/solicitud_rol_view.dart';
 import 'package:flowvenue/view/promocionarme_view.dart';
+import 'package:flowvenue/view/buscar_artista_view.dart';
 import 'agenda_view.dart';
 
 class PerfilConfigView extends StatefulWidget {
@@ -23,6 +24,10 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
   final List<String> _languages = ['Español', 'Català', 'English'];
 
   late Usuari _usuariLocal;
+
+  // VARIABLE PER GUARDAR L'ARTISTA DE SPOTIFY SELECCIONAT
+  String? _artistaSpotifySeleccionat;
+
 
   @override
   void initState() {
@@ -115,6 +120,64 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
                             child: const Text("Solicitar cambio de rol",
                                 style: TextStyle(color: Colors.white, decoration: TextDecoration.underline, fontSize: 12)),
                           ),
+
+                          // --- CAMP EXCLUSIU PER A ARTISTES (SPOTIFY) ---
+                          if (isArtista)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 25),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Perfil Musical", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 5),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      // Obrim el buscador que has creat
+                                      final String? nomArtista = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => const BuscarArtistaView()),
+                                      );
+
+                                      // Si retorna un nom, l'actualitzem (es pintarà de rosa)
+                                      if (nomArtista != null) {
+                                        setState(() {
+                                          _artistaSpotifySeleccionat = nomArtista;
+                                        });
+                                      }
+                                    },
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                                      decoration: BoxDecoration(
+                                        // Si està seleccionat -> Fons Rosa. Si no -> Fons Blanc
+                                        color: _artistaSpotifySeleccionat != null ? const Color(0xFFD988B9) : Colors.white,
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              _artistaSpotifySeleccionat ?? "Identifícate como artista (Spotify)",
+                                              style: TextStyle(
+                                                color: _artistaSpotifySeleccionat != null ? Colors.white : Colors.black45,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          Icon(
+                                            Icons.search,
+                                            color: _artistaSpotifySeleccionat != null ? Colors.white : Colors.black54,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
 
                           // BOTONS CONDICIONALS SEGONS EL ROL
                           if (isServei)

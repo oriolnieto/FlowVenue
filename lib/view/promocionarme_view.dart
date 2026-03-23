@@ -2,25 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class PromocionarmeView extends StatefulWidget {
-  const PromocionarmeView({super.key});
+  final String? nomArtistaSpotify;
+
+  const PromocionarmeView({super.key, this.nomArtistaSpotify});
 
   @override
   State<PromocionarmeView> createState() => _PromocionarmeViewState();
 }
 
 class _PromocionarmeViewState extends State<PromocionarmeView> {
-  final TextEditingController _nombreController = TextEditingController();
+  late TextEditingController _nombreController;
   final TextEditingController _descripcioController = TextEditingController();
-  final TextEditingController _spotifyUrlController = TextEditingController(); // NOU CAMP
 
   final Map<DateTime, List<String>> _eventsPerDia = {};
   DateTime _focusedDay = DateTime.now();
 
   @override
+  void initState() {
+    super.initState();
+    // Omplim el nom amb el que ve de la configuració de perfil
+    _nombreController = TextEditingController(text: widget.nomArtistaSpotify ?? "");
+  }
+
+  @override
   void dispose() {
     _nombreController.dispose();
     _descripcioController.dispose();
-    _spotifyUrlController.dispose();
     super.dispose();
   }
 
@@ -172,15 +179,7 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                 const SizedBox(height: 15),
 
                 _buildTextField("Descripción", _descripcioController, maxLines: 3),
-                const SizedBox(height: 15),
-
-                // NOU CAMP SPOTIFY
-                _buildTextField("Enlace de Spotify", _spotifyUrlController, icon: Icons.link),
-                const SizedBox(height: 25),
-
-                // LLISTA ESTIL SPOTIFY (Pròxims concerts)
-                _buildSpotifyTourList(),
-                const SizedBox(height: 25),
+                const SizedBox(height: 30),
 
                 const Text(
                   "Agenda de Disponibilidad",
@@ -203,7 +202,6 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
                     ),
                     onPressed: () {
                       print("Nom: ${_nombreController.text}");
-                      print("Spotify URL: ${_spotifyUrlController.text}");
                       print("Events guardats: $_eventsPerDia");
 
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -225,8 +223,6 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
       ),
     );
   }
-
-  // --- WIDGETS AUXILIARS ---
 
   Widget _buildHeader() {
     return Row(
@@ -265,81 +261,6 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
           ),
         ),
       ],
-    );
-  }
-
-  // NOVA SECCIÓ: LLISTA DE CONCERTS ESTIL SPOTIFY
-  Widget _buildSpotifyTourList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("De gira", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-            Text("Ver todos", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        // Farem un llistat horitzontal simulant els concerts propers
-        SizedBox(
-          height: 80,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildConcertCard("may", "22", "Lleida", "Discoteca Biloba"),
-              const SizedBox(width: 15),
-              _buildConcertCard("may", "30", "Barcelona", "Razzmatazz"),
-              const SizedBox(width: 15),
-              _buildConcertCard("jun", "05", "Madrid", "Teatro Barceló"),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // TARGETA INDIVIDUAL D'UN CONCERT
-  Widget _buildConcertCard(String mes, String dia, String ciutat, String local) {
-    return Container(
-      width: 250,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6), // Fons fosc estil Spotify
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        children: [
-          // Quadrat amb la data
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(mes.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                Text(dia, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 15),
-          // Informació del concert
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(ciutat, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(local, style: const TextStyle(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
