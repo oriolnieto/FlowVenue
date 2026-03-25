@@ -30,7 +30,28 @@ class _LoginViewState extends State<LoginView> {
             fit: BoxFit.cover,
           ),
         ),
-        child: Padding(
+
+        child: Stack(
+          children: [
+
+          // --- BOTÓ TORNAR ENRERE ---
+          Positioned(
+          top: 50,
+          left: 20,
+          child: CircleAvatar(
+            backgroundColor: Colors.white,
+            radius: 20,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
+              onPressed: () {
+                // Tanca la pantalla actual i torna a introduirCodi
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        ),
+
+        Padding(
           padding: const EdgeInsets.only(bottom: 200),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -129,6 +150,8 @@ class _LoginViewState extends State<LoginView> {
             ),
           ],
         ),
+        ),
+          ],
         ),
       ),
     );
