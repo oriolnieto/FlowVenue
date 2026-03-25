@@ -166,7 +166,7 @@ class _IntroduirCodiState extends State<introduirCodi> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const buscador_festa_view()),
+                  MaterialPageRoute(builder: (context) => buscador_festa_view(usuariActual: _currentUser)),
                 );
               },
               child: Container(
