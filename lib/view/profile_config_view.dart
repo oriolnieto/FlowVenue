@@ -54,8 +54,15 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
     bool isServei = _usuariLocal.isServei();
     bool isArtista = _usuariLocal.isArtista();
 
+    return PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) {
+          if (didPop) return;
+          Navigator.pop(context, _usuariLocal); // Retorna l'usuari al pare
+        },
 
-    return Scaffold(
+
+    child:  Scaffold(
         body: Container(
             width: double.infinity,
             height: double.infinity,
@@ -207,6 +214,7 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
                 ),
             ),
         ),
+    ),
     );
   }
 

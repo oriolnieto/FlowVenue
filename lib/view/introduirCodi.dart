@@ -1,4 +1,5 @@
 import 'package:flowvenue/view/buscador_festa_view.dart';
+import 'package:flowvenue/view/partyFeed_view.dart';
 import 'package:flowvenue/view/profile_config_view.dart';
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
@@ -37,7 +38,8 @@ class _IntroduirCodiState extends State<introduirCodi> {
     return Scaffold(
       body: Stack(
         children: [
-          Positioned.fill( // Emplenar amb l'imatge tot el fons
+          Positioned.fill(
+            // Emplenar amb l'imatge tot el fons
             child: Image.asset(
               'assets/Background_App.png',
               fit: BoxFit.cover,
@@ -47,45 +49,51 @@ class _IntroduirCodiState extends State<introduirCodi> {
             top: 50,
             left: 20,
             child: PopupMenuButton<String>(
-            offset: const Offset(0, 50), // Que s'obri per sota del botó
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            onSelected: (value) async {
-              if (value == 'login') {
-                // Obre el LoginView sense passar-li cap festa (mode inici de sessió general)
-                final Usuari? usuariLoguejat = await Navigator.push(
+              offset: const Offset(0, 50), // Que s'obri per sota del botó
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              onSelected: (value) async {
+                if (value == 'login') {
+                  // Obre el LoginView sense passar-li cap festa (mode inici de sessió general)
+                  final Usuari? usuariLoguejat = await Navigator.push(
                     context,
-                      MaterialPageRoute(builder: (context) => const LoginView()),
-                      );
+                    MaterialPageRoute(builder: (context) => const LoginView()),
+                  );
 
-                          // Si el login ha anat bé, guardem la sessió i actualitzem la vista
-                          if (usuariLoguejat != null) {
-                          setState(() {
-                          _currentUser = usuariLoguejat;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('¡Bienvenido, ${_currentUser!.username}!'), backgroundColor: Colors.green),
-                          );
-                          }
-
-                      } else if (value == 'config') {
-                      // Entrar a la configuració amb l'usuari real
-                      Navigator.push(
-                      context,
-                      MaterialPageRoute(
+                  // Si el login ha anat bé, guardem la sessió i actualitzem la vista
+                  if (usuariLoguejat != null) {
+                    setState(() {
+                      _currentUser = usuariLoguejat;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('¡Bienvenido, ${_currentUser!.username}!'), backgroundColor: Colors.green),
+                    );
+                  }
+                } else if (value == 'config') {
+                  // Entrar a la configuració i ESPERAR si l'usuari retorna actualitzat
+                  final Usuari? usuariActualitzat = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
                       builder: (context) => PerfilConfigView(usuariActual: _currentUser!),
-                      ),
-                      );
-                      } else if (value == 'logout') {
-                      // Tancar la sessió
-                      setState(() {
-                      _currentUser = null;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Sesión cerrada correctamente')),
-                      );
-                      }
-                      },
+                    ),
+                  );
 
+                  // Si hem tornat enrere i hi ha hagut algun canvi, actualitzem la sessió
+                  if (usuariActualitzat != null) {
+                    setState(() {
+                      _currentUser = usuariActualitzat;
+                    });
+                  }
+                } else if (value == 'logout') {
+                  // --- AQUESTA PART FALTAVA ---
+                  // Tancar la sessió
+                  setState(() {
+                    _currentUser = null;
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Sesión cerrada correctamente')),
+                  );
+                }
+              },
 
               // OPCIONS DEL MENÚ SEGONS SI HI HA SESSIÓ O NO
               itemBuilder: (BuildContext context) {
@@ -230,10 +238,19 @@ class _IntroduirCodiState extends State<introduirCodi> {
                         final festa = await DbServices().getFestaByAccessCode(int.parse(pin));
 
                         if (festa != null) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => LoginView(festa: festa)),
-                          );
+                          // Si l'usuari JA està loguejat, anem directes a la festa (aquí sí que volem pushReplacement)
+                          if (_currentUser != null) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => partyFeed_view(idFesta: festa.partyId)),
+                            );
+                          } else {
+                            // AQUÍ ESTÀ LA CLAU: Fem servir només "push" perquè pugui tirar enrere!
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => LoginView(festa: festa)),
+                            );
+                          }
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Codi invàlid o festa inactiva!')),
