@@ -10,12 +10,16 @@ class introduirCodi extends StatefulWidget {
   const introduirCodi({super.key});
 
 
+
   @override
   State<introduirCodi> createState() => _IntroduirCodiState();
 }
 
 class _IntroduirCodiState extends State<introduirCodi> {
   final TextEditingController codiController = TextEditingController();
+  // VARIABLE D'ESTAT PER GUARDAR LA SESSIÓ OBERTA
+  Usuari? _currentUser;
+
 
   @override
   void initState() {
@@ -42,26 +46,88 @@ class _IntroduirCodiState extends State<introduirCodi> {
           Positioned(
             top: 50,
             left: 20,
-            child: GestureDetector(
-              onTap: () {
-                Usuari usuariTemporal = Usuari(
-                  userId: 'temp_id',
-                  userIdInt: 0,
-                  username: 'Invitado',
-                  password: '',
-                  email: '',
-                  role: 'usuario', // Pots canviar-ho a 'servicio' per provar el botó Crear Evento
-                  phone: 0,
-                  favouriteGeneres: [],
-                );
+            child: PopupMenuButton<String>(
+            offset: const Offset(0, 50), // Que s'obri per sota del botó
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            onSelected: (value) async {
+              if (value == 'login') {
+                // Obre el LoginView sense passar-li cap festa (mode inici de sessió general)
+                final Usuari? usuariLoguejat = await Navigator.push(
+                    context,
+                      MaterialPageRoute(builder: (context) => const LoginView()),
+                      );
 
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => PerfilConfigView(usuariActual: usuariTemporal)),
-                );
+                          // Si el login ha anat bé, guardem la sessió i actualitzem la vista
+                          if (usuariLoguejat != null) {
+                          setState(() {
+                          _currentUser = usuariLoguejat;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('¡Bienvenido, ${_currentUser!.username}!'), backgroundColor: Colors.green),
+                          );
+                          }
 
+                      } else if (value == 'config') {
+                      // Entrar a la configuració amb l'usuari real
+                      Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                      builder: (context) => PerfilConfigView(usuariActual: _currentUser!),
+                      ),
+                      );
+                      } else if (value == 'logout') {
+                      // Tancar la sessió
+                      setState(() {
+                      _currentUser = null;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Sesión cerrada correctamente')),
+                      );
+                      }
+                      },
+
+
+              // OPCIONS DEL MENÚ SEGONS SI HI HA SESSIÓ O NO
+              itemBuilder: (BuildContext context) {
+                if (_currentUser == null) {
+                  return [
+                    const PopupMenuItem(
+                      value: 'login',
+                      child: Row(
+                        children: [
+                          Icon(Icons.login, color: Colors.black),
+                          SizedBox(width: 10),
+                          Text('Registrarse / Iniciar sesión'),
+                        ],
+                      ),
+                    ),
+                  ];
+                } else {
+                  return [
+                    const PopupMenuItem(
+                      value: 'config',
+                      child: Row(
+                        children: [
+                          Icon(Icons.settings, color: Colors.black),
+                          SizedBox(width: 10),
+                          Text('Configuración'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'logout',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout, color: Colors.red),
+                          SizedBox(width: 10),
+                          Text('Cerrar sesión', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ];
+                }
               },
+              // L'ASPECTE VISUAL DEL BOTÓ
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -75,9 +141,10 @@ class _IntroduirCodiState extends State<introduirCodi> {
                     )
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.person,
-                  color: Colors.black,
+                  // Pintem la icona diferent si estem loguejats
+                  color: _currentUser != null ? const Color(0xFFE94E77) : Colors.black,
                   size: 24,
                 ),
               ),

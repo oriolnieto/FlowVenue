@@ -5,8 +5,8 @@ import 'package:flowvenue/services/db_services.dart';
 
 
 class LoginView extends StatefulWidget {
-  final Festa festa;
-  const LoginView({super.key, required this.festa});
+  final Festa? festa;
+  const LoginView({super.key, this.festa});
 
 
   @override
@@ -97,24 +97,31 @@ class _LoginViewState extends State<LoginView> {
                           );
                           return;
                         }
-                        final usuari = await _dbServices.login(username, password);
 
-                        String idLaFesta = widget.festa.partyId;
+                        // Intentem fer login (o registre si és nou)
+                        final usuari = await _dbServices.login(username, password);
 
                         if (usuari != null) {
                           if (!mounted) return;
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => partyFeed_view(idFesta: idLaFesta)),
-                          );
+
+                          // Si hem entrat des del codi de festa: Anem a la festa
+                          if (widget.festa != null) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => partyFeed_view(idFesta: widget.festa!.partyId)),
+                            );
+                          } else {
+                            // Si hem entrat des del menú de perfil: Tornem enrere i passem l'usuari
+                            Navigator.pop(context, usuari);
+                          }
                         } else {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Usuari o contrasenya incorrectes')),
+                            const SnackBar(content: Text('Contrasenya incorrecta')),
                           );
                         }
                       },
-                      child: const Text('Acceder'),
+                      child: const Text('Acceder / Registrarse'),
                     ),
                   ),
                 ],
