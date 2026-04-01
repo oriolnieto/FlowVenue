@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '/model/users_model.dart';
 import 'CreatePostView_view.dart';
 
 class SocialFeedView extends StatefulWidget {
-  const SocialFeedView({super.key});
+  final Usuari usuari; // agafar usuari per al post
+
+  const SocialFeedView({super.key, required this.usuari});
+
   @override
   _SocialFeedViewState createState() => _SocialFeedViewState();
 }
@@ -12,22 +16,20 @@ class _SocialFeedViewState extends State<SocialFeedView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        floatingActionButton: FloatingActionButton(
-            backgroundColor: const Color(0xFFE94E77),
-            elevation: 5,
-            child: const Icon(Icons.add_comment, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CreatePostView()),
-              );
-
-            },
-        ),
-
-
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFFE94E77),
+        elevation: 5,
+        child: const Icon(Icons.add_comment, color: Colors.white),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CreatePostView(usuari: widget.usuari),
+            ),
+          );
+        },
+      ),
       body: Container(
-        // Fons amb el gradient corporatiu o la imatge Background_App
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage('assets/Background_App.png'),
@@ -39,27 +41,37 @@ class _SocialFeedViewState extends State<SocialFeedView> {
             children: [
               _buildHeader(),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    // Post de text pur (com el del 'premo')
-                    _buildPostCard(
-                      username: "yuseef_ramadan",
-                      likes: "3",
-                      content: "ola premo me dejas tu cargador de telefono aifon istoy in la sala tris nesesito comulncarme con me familia de maroco grasia",
-                    ),
-                    // Post amb imatge (Subclasse POST del teu UML)
-                    _buildPostCard(
-                      username: "kimjonganal",
-                      likes: "7",
-                      imageUrl: "https://images.squarespace-cdn.com/content/v1/5521b64ae4b045339678c3b1/1545035252511-L6O9B72U3V9V4U6U6U6U/image-asset.jpeg",
-                    ),
-                    _buildPostCard(
-                      username: "yuseef_ramadan",
-                      likes: "1",
-                      content: "segarroooooo viva viva viva io soi ispaniolll ein dirham siusplau",
-                    ),
-                  ],
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('posts')
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: Colors.white));
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
+                        child: Text("No hi ha posts encara!",
+                            style: TextStyle(color: Colors.white70)),
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: snapshot.data!.docs.length,
+                      itemBuilder: (context, index) {
+                        var post = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                        return _buildPostCard(
+                          username: post['username'] ?? 'Anònim',
+                          likes: (post['likes'] ?? 0).toString(),
+                          content: post['content'],
+                          imageUrl: post['imageUrl'],
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
               const Padding(
@@ -76,100 +88,80 @@ class _SocialFeedViewState extends State<SocialFeedView> {
 
   Widget _buildHeader() {
     return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-            // Botó de tornar enrere segons el teu mockup
-            CircleAvatar(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          CircleAvatar(
             backgroundColor: Colors.white,
             child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
-                onPressed: () => Navigator.pop(context),
-
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () => Navigator.pop(context),
             ),
-        ),
-
-        Image.network(
+          ),
+          Image.network(
             'https://h-chef.com/wp-content/uploads/2018/04/Razzmatazz.png',
             height: 40,
             fit: BoxFit.contain,
-
-        ),
-            ],
-        ),
+          ),
+        ],
+      ),
     );
-}
+  }
 
   Widget _buildPostCard({
-  required String username,
-  required String likes,
-  String? content,
-  String? imageUrl,
-
+    required String username,
+    required String likes,
+    String? content,
+    String? imageUrl,
   }) {
     return Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-        BoxShadow(
-        color: Colors.pinkAccent.withOpacity(0.2),
-        blurRadius: 10,
-        spreadRadius: 2,
-
-        )
-            ],
-        ),
-
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.pinkAccent,
+            blurRadius: 10,
+            spreadRadius: 2,
+          )
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-      // Capçalera del Post (Avatar + User + Likes)
-      Row(
-      children: [
-      const CircleAvatar(
-      radius: 15,
-        backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=yuseef'),
-      ),
-      const SizedBox(width: 10),
-      Text("@$username",
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-      const Spacer(),
-      const Icon(Icons.favorite, size: 18, color: Colors.black),
-      const SizedBox(width: 5),
-      Text(likes, style: const TextStyle(color: Colors.black)),
-      ],
-    ),
-    const SizedBox(height: 12),
-
-    // Contingut: Text o Imatge (Basat en la teva classe POST de l'UML)
-    if (content != null)
-    Text(content, style: const TextStyle(color: Colors.black87, fontSize: 13)),
-
-          if (imageUrl != null)
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 15,
+                backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=$username'),
+              ),
+              const SizedBox(width: 10),
+              Text("@$username",
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+              const Spacer(),
+              const Icon(Icons.favorite, size: 18, color: Colors.black),
+              const SizedBox(width: 5),
+              Text(likes, style: const TextStyle(color: Colors.black)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (content != null && content.isNotEmpty)
+            Text(content, style: const TextStyle(color: Colors.black87, fontSize: 13)),
+          if (imageUrl != null && imageUrl.isNotEmpty) ...[
+            const SizedBox(height: 10),
             ClipRRect(
               borderRadius: BorderRadius.circular(15),
               child: Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
-                // Això evita que l'app mostre l'error 404 a la pantalla
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 200,
-                    width: double.infinity,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.broken_image, color: Colors.grey, size: 50),
-                  );
-                },
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
               ),
             ),
-
-    const SizedBox(height: 15),
-
-
+          ],
+          const SizedBox(height: 15),
           Align(
             alignment: Alignment.centerRight,
             child: GestureDetector(
@@ -178,9 +170,10 @@ class _SocialFeedViewState extends State<SocialFeedView> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => CreatePostView(
+                      usuari: widget.usuari,
                       isReply: true,
                       originalUser: username,
-                      originalContent: content ?? "Post con imagen",
+                      originalContent: content ?? "Post amb imatge",
                     ),
                   ),
                 );
@@ -191,13 +184,7 @@ class _SocialFeedViewState extends State<SocialFeedView> {
                   color: const Color(0xFFF1B1CB),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
-                  "Responde →",
-                  style: TextStyle(
-                      color: Color(0xFFE94E77),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12),
-                ),
+                child: const Text("Respon →", style: TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold, fontSize: 12)),
               ),
             ),
           ),
@@ -205,4 +192,4 @@ class _SocialFeedViewState extends State<SocialFeedView> {
       ),
     );
   }
-  }
+}

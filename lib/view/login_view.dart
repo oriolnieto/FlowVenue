@@ -129,7 +129,7 @@ class _LoginViewState extends State<LoginView> {
                           if (widget.festa != null) {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (context) => partyFeed_view(idFesta: widget.festa!.partyId)),
+                              MaterialPageRoute(builder: (context) => partyFeed_view(idFesta: widget.festa!.partyId, usuari: usuari)), // passar usuari parametre integrat
                             );
                           } else {
                             // Si hem entrat des del menú de perfil: Tornem enrere i passem l'usuari

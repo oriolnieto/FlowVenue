@@ -239,10 +239,11 @@ class _IntroduirCodiState extends State<introduirCodi> {
 
                         if (festa != null) {
                           // Si l'usuari JA està loguejat, anem directes a la festa (aquí sí que volem pushReplacement)
-                          if (_currentUser != null) {
+                          final Usuari? usuariActual = _currentUser; // usuari, problemes amb el ? passar parametre
+                          if (usuariActual != null) {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (context) => partyFeed_view(idFesta: festa.partyId)),
+                              MaterialPageRoute(builder: (context) => partyFeed_view(idFesta: festa.partyId, usuari: usuariActual)),
                             );
                           } else {
                             // AQUÍ ESTÀ LA CLAU: Fem servir només "push" perquè pugui tirar enrere!

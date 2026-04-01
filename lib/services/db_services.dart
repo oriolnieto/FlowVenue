@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flowvenue/model/party_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flowvenue/model/users_model.dart';
 
 class DbServices {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   Future<Festa?> getFestaByAccessCode(int codiAcces) async {  // passem el codi d'acces del pinput per validar-ho!
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -124,4 +128,45 @@ class DbServices {
       print('Error votant cançó: $e');
     }
   }
+// Fix de l'error: "parametre no definit imageUrl"
+  Future<bool> crearPost({
+    required String username,
+    String? content,
+    String? imageUrl, // Ara està clarament definit com a paràmetre
+  }) async {
+    try {
+      await _db.collection('posts').add({
+        'username': username,
+        'content': content ?? '',
+        'imageUrl': imageUrl ?? '', // Si és null, guardem buit
+        'likes': 0,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      print('Error creant post: $e');
+      return false;
+    }
+  }
+
+  // Si vols pujar la foto a Storage abans de crear el post:
+  Future<String?> pujarFoto(File imageFile) async {
+    try {
+      String name = 'posts/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      var ref = FirebaseStorage.instance.ref().child(name);
+      await ref.putFile(imageFile);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Stream per carregar els posts en temps real a la UI
+  Stream<QuerySnapshot> escoltarPosts() {
+    return _db
+        .collection('posts')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
 }
+

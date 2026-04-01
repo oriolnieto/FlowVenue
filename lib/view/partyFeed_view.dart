@@ -5,17 +5,21 @@ import 'package:flowvenue/view/socialFeedView_view.dart';
 import 'package:flowvenue/view/buscador_view.dart';
 import 'package:flutter/material.dart';
 
+import '../model/users_model.dart';
 import '../services/db_services.dart';
 import 'introduirCodi.dart';
 
 class partyFeed_view extends StatefulWidget {
   final String urlLogo;
   final String idFesta;
+  final Usuari usuari;
+
 
   const partyFeed_view({
     super.key,
     required this.idFesta,
     this.urlLogo = 'https://ibb.co/DPZmZpGw',
+    required this.usuari,
   });
 
   @override
@@ -243,7 +247,7 @@ class _PartyFeedViewState extends State<partyFeed_view> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SocialFeedView()),
+                MaterialPageRoute(builder: (context) => SocialFeedView(usuari: widget.usuari)), // passar usuari parametre
               );
             },
           ),
