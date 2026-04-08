@@ -99,8 +99,8 @@ class _SocialFeedViewState extends State<SocialFeedView> {
               onPressed: () => Navigator.pop(context),
             ),
           ),
-          Image.network(
-            'https://h-chef.com/wp-content/uploads/2018/04/Razzmatazz.png',
+          Image.asset(
+            'assets/Logo_FlowVenue.png',
             height: 40,
             fit: BoxFit.contain,
           ),
@@ -136,7 +136,6 @@ class _SocialFeedViewState extends State<SocialFeedView> {
             children: [
               CircleAvatar(
                 radius: 15,
-                backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=$username'),
               ),
               const SizedBox(width: 10),
               Text("@$username",

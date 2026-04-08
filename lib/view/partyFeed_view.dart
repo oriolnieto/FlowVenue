@@ -233,8 +233,8 @@ class _PartyFeedViewState extends State<partyFeed_view> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Image.network(
-                widget.urlLogo,
+              child: Image.asset(
+                'assets/Logo_FlowVenue.png',
                 height: 40,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) =>
