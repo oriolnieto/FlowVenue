@@ -205,6 +205,8 @@ class _CrearEventViewState extends State<CrearEventView> {
                                       int.parse(dateParts[0])
                                   );
 
+                                  double preuFesta = double.tryParse(_precioController.text) ?? 0.0;
+
                                   // 3. Crear objecte Festa sense el ID
                                   Festa novaFesta = Festa(
                                     partyId: '', // ID buit inicialment
@@ -223,6 +225,16 @@ class _CrearEventViewState extends State<CrearEventView> {
                                       .add(novaFesta.toFirestore());
 
                                   print("Festa creada a Firebase! PartyID: ${docRef.id}");
+
+                                  await FirebaseFirestore.instance.collection('agenda').add({
+                                    'partyId': docRef.id,
+                                    'userId': 1, // Caldrà posar l'usuari actual més endavant
+                                    'name': _nombreController.text,
+                                    'fechaEvento': fechaFesta,
+                                    'precio': preuFesta,
+                                    'localizacion': _localizacionController.text,
+                                  });
+
 
                                   if (!mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(

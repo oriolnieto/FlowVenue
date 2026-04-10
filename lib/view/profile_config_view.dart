@@ -19,8 +19,7 @@ class PerfilConfigView extends StatefulWidget {
 class _PerfilConfigViewState extends State<PerfilConfigView> {
   late TextEditingController _nameController;
 
-  String _selectedLanguage = 'Español';
-  final List<String> _languages = ['Español', 'Català', 'English'];
+
 
   late Usuari _usuariLocal;
 
@@ -82,7 +81,7 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
 
                   // Camps del formulari (SENSE EL TELÈFON)
                   _buildTextField("Usuario", _nameController, Icons.edit),
-                  _buildLanguageDropdown(),
+
                   // Aquest camp mostrarà sempre el rol actualitzat a l'instant
                   _buildReadOnlyField("Rol", _usuariLocal.role.toUpperCase()),
 
@@ -345,37 +344,7 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
     );
   }
 
-  Widget _buildLanguageDropdown() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Idioma", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 5),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedLanguage,
-                isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down, color: Colors.black),
-                items: _languages.map((String lang) {
-                  return DropdownMenuItem(value: lang, child: Text(lang, style: const TextStyle(color: Color(0xFFE94E77))));
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedLanguage = newValue!;
-                  });
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildReadOnlyField(String label, String value) {
     return Padding(

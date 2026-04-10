@@ -114,12 +114,15 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
 
         // Filtre per Data
         bool dataValida = true;
-        if (_filtreData != null && festa['data'] != null) {
+        final dataFirebase = festa['fechaEvento'] ?? festa['data'];
+
+
+        if (_filtreData != null && dataFirebase != null) {
           DateTime dataFesta;
-          if (festa['data'] is Timestamp) {
-            dataFesta = (festa['data'] as Timestamp).toDate();
+          if (dataFirebase is Timestamp) {
+            dataFesta = dataFirebase.toDate();
           } else {
-            dataFesta = DateTime.parse(festa['data'].toString());
+            dataFesta = DateTime.parse(dataFirebase.toString());
           }
           dataValida = dataFesta.year == _filtreData!.year &&
               dataFesta.month == _filtreData!.month &&
@@ -397,13 +400,16 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
 
     final String id = festa['id'];
     final String nom = festa['nom'] ?? festa['name'] ?? 'Sense Nom';
-    final String lloc = festa['lloc'] ?? festa['location'] ?? 'Sense lloc';
+    final String lloc = festa['localizacion'] ?? festa['lloc'] ?? festa['location'] ?? 'Sense lloc';
     final String imatgeUrl = festa['imatge'] ?? festa['imageUrl'] ?? '';
-    final double preu = (festa['preu'] ?? festa['price'] ?? 0).toDouble();
+    final double preu = (festa['precio'] ?? festa['preu'] ?? 0).toDouble();
 
     // Transformació de la Data per tenir Dia i Hora
     String dataFormatada = 'Sense data';
     String horaFormatada = '';
+    final dataFirebase = festa['fechaEvento'] ?? festa['data'];
+
+
     if (festa['data'] != null) {
       try {
         DateTime dataFesta;
