@@ -114,7 +114,7 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
 
         // Filtre per Data
         bool dataValida = true;
-        final dataFirebase = festa['fechaEvento'] ?? festa['data'];
+        final dataFirebase = festa['fecha_evento'] ?? festa['fechaEvento'] ?? festa['data'] ?? festa['date'];
 
 
         if (_filtreData != null && dataFirebase != null) {
@@ -398,30 +398,37 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
 
   Widget _buildEventCard(Map<String, dynamic> festa) {
 
+
+    print("🔍 DADES REBUDES DE FIREBASE: $festa");
+
+
     final String id = festa['id'];
     final String nom = festa['nom'] ?? festa['name'] ?? 'Sense Nom';
-    final String lloc = festa['localizacion'] ?? festa['lloc'] ?? festa['location'] ?? 'Sense lloc';
+    final String lloc = festa['localizacion'] ?? festa['lloc'] ?? festa['location'] ?? festa['ubicacion'] ?? 'Sense lloc';
+    final dataFirebase = festa['fecha_evento'] ?? festa['fechaEvento'] ?? festa['fecha'] ?? festa['data'] ?? festa['date'];
     final String imatgeUrl = festa['imatge'] ?? festa['imageUrl'] ?? '';
-    final double preu = (festa['precio'] ?? festa['preu'] ?? 0).toDouble();
+
+    final rawPreu = festa['precio'] ?? festa['preu'];
+    final double preu = rawPreu != null ? double.tryParse(rawPreu.toString()) ?? 0.0 : 0.0;
 
     // Transformació de la Data per tenir Dia i Hora
     String dataFormatada = 'Sense data';
     String horaFormatada = '';
-    final dataFirebase = festa['fechaEvento'] ?? festa['data'];
 
 
-    if (festa['data'] != null) {
+
+    if (dataFirebase != null) {
       try {
         DateTime dataFesta;
-        if (festa['data'] is Timestamp) {
-          dataFesta = (festa['data'] as Timestamp).toDate();
+        if (dataFirebase is Timestamp) {
+          dataFesta = dataFirebase.toDate();
         } else {
-          dataFesta = DateTime.parse(festa['data'].toString());
+          dataFesta = DateTime.parse(dataFirebase.toString());
         }
         dataFormatada = "${dataFesta.day.toString().padLeft(2, '0')}/${dataFesta.month.toString().padLeft(2, '0')}/${dataFesta.year}";
         horaFormatada = "${dataFesta.hour.toString().padLeft(2, '0')}:${dataFesta.minute.toString().padLeft(2, '0')}";
       } catch (e) {
-        dataFormatada = festa['data'].toString(); // Si ve com un text pla en comptes de Timestamp
+        dataFormatada = dataFirebase.toString(); // Si ve com un text pla en comptes de Timestamp
       }
     }
 

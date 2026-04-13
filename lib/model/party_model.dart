@@ -10,6 +10,10 @@ class Festa {
   final bool actividad;
   final List<String> tipoFesta;
 
+  final String localizacion;
+  final double precio;
+  final String imatge;
+
   Festa({
     required this.partyId,
     required this.serveiId,
@@ -19,6 +23,10 @@ class Festa {
     required this.fechaEvento,
     required this.actividad,
     required this.tipoFesta,
+
+    this.localizacion = 'Sense lloc',
+    this.precio = 0.0,
+    this.imatge = '',
   });
 
   factory Festa.fromFirestore(DocumentSnapshot doc) {
@@ -32,6 +40,10 @@ class Festa {
       fechaEvento: (data['fecha_evento'] as Timestamp).toDate(),
       actividad: data['actividad'] ?? false,
       tipoFesta: List<String>.from(data['tipo_festa'] ?? []),
+
+      localizacion: data['localizacion'] ?? data['lloc'] ?? 'Sense lloc',
+      precio: (data['precio'] ?? data['preu'] ?? 0).toDouble(),
+      imatge: data['imatge'] ?? data['imageUrl'] ?? '',
     );
   }
 
@@ -44,6 +56,10 @@ class Festa {
       'fecha_evento': Timestamp.fromDate(fechaEvento),
       'actividad': actividad,
       'tipo_festa': tipoFesta,
+
+      'localizacion': localizacion,
+      'precio': precio,
+      'imatge': imatge,
     };
   }
 
@@ -58,6 +74,9 @@ class Festa {
       'actividad': actividad,
       'tipo_festa': tipoFesta,
       'fecha_evento': fechaEvento.toIso8601String(), // per a retornar la data si fos necessari en un format adequat en temps real
-    };
+      'localizacion': localizacion,
+      'precio': precio,
+      'imatge': imatge,
+      };
   }
 }

@@ -219,10 +219,15 @@ class _CrearEventViewState extends State<CrearEventView> {
                                     tipoFesta: [_artistasController.text],
                                   );
 
+                                  // CONVERTIM A MAP I AFEGIM EL PREU I LA LOCALITZACIÓ
+                                  Map<String, dynamic> festaData = novaFesta.toFirestore();
+                                  festaData['precio'] = preuFesta;
+                                  festaData['localizacion'] = _localizacionController.text;
+
                                   // 4. Pujar a Firebase Firestore i obtenir el ID
                                   DocumentReference docRef = await FirebaseFirestore.instance
                                       .collection('festes')
-                                      .add(novaFesta.toFirestore());
+                                      .add(festaData);
 
                                   print("Festa creada a Firebase! PartyID: ${docRef.id}");
 
