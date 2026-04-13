@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flowvenue/view/buscar_artista_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flowvenue/model/party_model.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import 'package:flowvenue/services/spotifyServices.dart';
 
@@ -198,6 +199,14 @@ class _CrearEventViewState extends State<CrearEventView> {
                                 }
 
                                 try {
+
+                                  // Mostrar un indicador de càrrega per si la foto triga uns segons a pujar
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFE94E77))),
+                                  );
+
                                   List<String> dateParts = _fechaController.text.split('/');
                                   DateTime fechaFesta = DateTime(
                                       int.parse(dateParts[2]),
@@ -206,6 +215,18 @@ class _CrearEventViewState extends State<CrearEventView> {
                                   );
 
                                   double preuFesta = double.tryParse(_precioController.text) ?? 0.0;
+
+                                  // --- 2. PUJAR LA IMATGE A FIREBASE STORAGE ---
+                                  String imatgeUrl = ''; // Si no n'hi ha, es quedarà buit
+
+                                  if (_imatgeSeleccionada != null) {
+                                    String nomArxiu = DateTime.now().millisecondsSinceEpoch.toString() + '.jpg';
+                                    Reference ref = FirebaseStorage.instance.ref().child('festes_images/$nomArxiu');
+
+                                    UploadTask uploadTask = ref.putFile(_imatgeSeleccionada!);
+                                    TaskSnapshot snapshot = await uploadTask;
+                                    imatgeUrl = await snapshot.ref.getDownloadURL();
+                                  }
 
                                   // 3. Crear objecte Festa sense el ID
                                   Festa novaFesta = Festa(
@@ -223,6 +244,7 @@ class _CrearEventViewState extends State<CrearEventView> {
                                   Map<String, dynamic> festaData = novaFesta.toFirestore();
                                   festaData['precio'] = preuFesta;
                                   festaData['localizacion'] = _localizacionController.text;
+                                  festaData['imatge'] = imatgeUrl;
 
                                   // 4. Pujar a Firebase Firestore i obtenir el ID
                                   DocumentReference docRef = await FirebaseFirestore.instance
@@ -238,7 +260,10 @@ class _CrearEventViewState extends State<CrearEventView> {
                                     'fechaEvento': fechaFesta,
                                     'precio': preuFesta,
                                     'localizacion': _localizacionController.text,
+                                    'imatge': imatgeUrl,
                                   });
+
+                                  if (mounted) Navigator.pop(context);
 
 
                                   if (!mounted) return;
@@ -249,6 +274,7 @@ class _CrearEventViewState extends State<CrearEventView> {
                                   Navigator.pop(context);
 
                                 } catch (e) {
+                                  if (mounted) Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(content: Text('Error al crear evento: $e'), backgroundColor: Colors.red),
                                   );

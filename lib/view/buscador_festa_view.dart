@@ -451,19 +451,31 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
       child: Row(
         children: [
         // Imatge
-        Container(
+      ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: imatgeUrl.isNotEmpty
+          ? Image.network(
+        imatgeUrl,
         width: 65,
         height: 65,
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-          image: imatgeUrl.isNotEmpty
-              ? DecorationImage(image: NetworkImage(imatgeUrl), fit: BoxFit.cover)
-              : null,
-        ),
-        child: imatgeUrl.isEmpty
-            ? const Icon(Icons.music_note, color: Color(0xFFE94E77), size: 30)
-            : null,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Si la URL falla o la imatge no existeix, mostrem un error visual suau
+          return Container(
+            width: 65,
+            height: 65,
+            color: Colors.grey[200],
+            child: const Icon(Icons.broken_image, color: Colors.grey),
+          );
+        },
+      )
+          : Container(
+        // Si el camp imatge està buit, mostrem la nota musical
+        width: 65,
+        height: 65,
+        color: Colors.grey[200],
+        child: const Icon(Icons.music_note, color: Color(0xFFE94E77), size: 30),
+      ),
       ),
 
           const SizedBox(width: 15),
