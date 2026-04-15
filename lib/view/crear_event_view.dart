@@ -207,66 +207,52 @@ class _CrearEventViewState extends State<CrearEventView> {
                                     builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFE94E77))),
                                   );
 
-                                  List<String> dateParts = _fechaController.text.split('/');
-                                  DateTime fechaFesta = DateTime(
-                                      int.parse(dateParts[2]),
-                                      int.parse(dateParts[1]),
-                                      int.parse(dateParts[0])
-                                  );
 
-                                  double preuFesta = double.tryParse(_precioController.text) ?? 0.0;
-
-                                  // --- 2. PUJAR LA IMATGE A FIREBASE STORAGE ---
-                                  String imatgeUrl = ''; // Si no n'hi ha, es quedarà buit
+                                  String urlDescarrega = '';
 
                                   if (_imatgeSeleccionada != null) {
-                                    String nomArxiu = DateTime.now().millisecondsSinceEpoch.toString() + '.jpg';
-                                    Reference ref = FirebaseStorage.instance.ref().child('festes_images/$nomArxiu');
+                                    // Creem una referència única per a la imatge
+                                    String idImatge = DateTime.now().millisecondsSinceEpoch.toString();
+                                    Reference ref = FirebaseStorage.instance.ref().child('festes_images/$idImatge.jpg');
 
+                                    // Pugem l'arxiu
                                     UploadTask uploadTask = ref.putFile(_imatgeSeleccionada!);
+
+                                    // Esperem que la pujada acabi
                                     TaskSnapshot snapshot = await uploadTask;
-                                    imatgeUrl = await snapshot.ref.getDownloadURL();
+
+                                    // Obtenim la URL pública (Això és el que Firestore necessita)
+                                    urlDescarrega = await snapshot.ref.getDownloadURL();
+                                    print("✅ URL obtinguda correctament: $urlDescarrega");
                                   }
 
-                                  // 3. Crear objecte Festa sense el ID
-                                  Festa novaFesta = Festa(
-                                    partyId: '', // ID buit inicialment
-                                    serveiId: 1, // ID del Servei creador (agafar de l'usuari actual)
-                                    djId: 0,
-                                    codiAcces: int.parse(_codigoController.text),
-                                    name: _nombreController.text,
-                                    fechaEvento: fechaFesta,
-                                    actividad: true,
-                                    tipoFesta: [_artistasController.text],
-                                  );
+                                  List<String> dateParts = _fechaController.text.split('/');
+                                  DateTime fechaFesta = DateTime(int.parse(dateParts[2]), int.parse(dateParts[1]), int.parse(dateParts[0]));
+                                  double preuFesta = double.tryParse(_precioController.text) ?? 0.0;
 
-                                  // CONVERTIM A MAP I AFEGIM EL PREU I LA LOCALITZACIÓ
-                                  Map<String, dynamic> festaData = novaFesta.toFirestore();
-                                  festaData['precio'] = preuFesta;
-                                  festaData['localizacion'] = _localizacionController.text;
-                                  festaData['imatge'] = imatgeUrl;
 
-                                  // 4. Pujar a Firebase Firestore i obtenir el ID
-                                  DocumentReference docRef = await FirebaseFirestore.instance
-                                      .collection('festes')
-                                      .add(festaData);
-
-                                  print("Festa creada a Firebase! PartyID: ${docRef.id}");
-
-                                  await FirebaseFirestore.instance.collection('agenda').add({
-                                    'partyId': docRef.id,
-                                    'userId': 1, // Caldrà posar l'usuari actual més endavant
-                                    'name': _nombreController.text,
-                                    'fechaEvento': fechaFesta,
-                                    'precio': preuFesta,
+                                  // --- 4. CREAR EL MAPA MANUALMENT ---
+                                  // Ho fem manualment per evitar que el model Festa.toFirestore() sobreescrigui el camp 'imatge' amb un buit
+                                  Map<String, dynamic> dadesPerEnviar = {
+                                    'nom': _nombreController.text, // El buscador busca 'nom'
+                                    'name': _nombreController.text, // Per si de cas
+                                    'fecha_evento': fechaFesta,
                                     'localizacion': _localizacionController.text,
-                                    'imatge': imatgeUrl,
-                                  });
+                                    'precio': preuFesta,
+                                    'imatge': urlDescarrega, // <--- AQUÍ guardem la URL que acabem d'obtenir
+                                    'codiAcces': int.parse(_codigoController.text),
+                                    'artista': _artistasController.text,
+                                    'actividad': true,
+                                  };
+
+
+                                  await FirebaseFirestore.instance.collection('festes').add(dadesPerEnviar);
+
 
                                   if (mounted) Navigator.pop(context);
 
 
-                                  if (!mounted) return;
+
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text('Evento creado correctamente!'), backgroundColor: Colors.green),
                                   );
