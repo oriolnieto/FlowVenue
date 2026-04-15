@@ -12,16 +12,36 @@ class spotifyServices {
   bool _isConnected = false;
   bool get isConnected => _isConnected;
 
+  final String clientId = "c23d9c5e2c574f2caef31066aa6a361e";
+  final String clientSecret = "e81e949f21ee4d61a6e0d4fdd1bcfd93";
+  final String redirectUrl = "flowvenue://callback";
+
   Future<bool> connect() async {
     try {
+      await getAuthToken();
+
       _isConnected = await SpotifySdk.connectToSpotifyRemote(
-        clientId: "c23d9c5e2c574f2caef31066aa6a361e",
-        redirectUrl: "flowvenue://callback",
+        clientId: clientId,
+        redirectUrl: redirectUrl,
       );
       return _isConnected;
     } catch (e) {
       _isConnected = false;
       return false;
+    }
+  }
+
+  Future<String?> getAuthToken() async {
+    try {
+      var token = await SpotifySdk.getAccessToken(
+        clientId: clientId,
+        redirectUrl: redirectUrl,
+        scope: "app-remote-control,user-modify-playback-state,playlist-read-private,streaming,user-read-playback-state",
+      );
+      return token;
+    } catch (e) {
+      print("Error obtenint token: $e");
+      return null;
     }
   }
 
@@ -31,9 +51,6 @@ class spotifyServices {
     if (query.isEmpty) return [];
 
     try {
-      const String clientId = 'c23d9c5e2c574f2caef31066aa6a361e';
-      const String clientSecret = 'e81e949f21ee4d61a6e0d4fdd1bcfd93';
-
       String credentials = base64.encode(utf8.encode('$clientId:$clientSecret'));
 
       final tokenResponse = await http.post(
@@ -46,47 +63,36 @@ class spotifyServices {
       );
 
       if (tokenResponse.statusCode == 200) {
-        final tokenData = jsonDecode(tokenResponse.body);
-        final accessToken = tokenData['access_token'];
+        final accessToken = jsonDecode(tokenResponse.body)['access_token'];
 
-        final searchUrl = Uri.parse('https://api.spotify.com/v1/search?q=$query&type=track&limit=5');
-        final searchResponse = await http.get(searchUrl, headers: {'Authorization': 'Bearer $accessToken'},);
+        final searchUrl = Uri.parse('https://api.spotify.com/v1/search?q=${Uri.encodeComponent(query)}&type=track&limit=10');
+        final searchResponse = await http.get(searchUrl, headers: {'Authorization': 'Bearer $accessToken'});
 
         if (searchResponse.statusCode == 200) {
-          final searchData = jsonDecode(searchResponse.body);
-          final tracks = searchData['tracks']['items'] as List;
+          final tracks = jsonDecode(searchResponse.body)['tracks']['items'] as List;
 
           return tracks.map((track) {
-            String coverUrl = '';
-            if (track['album']['images'] != null && track['album']['images'].isNotEmpty) {
-              coverUrl = track['album']['images'][0]['url'].toString();
-            }
             return {
               'title': track['name'].toString(),
               'artist': track['artists'][0]['name'].toString(),
               'uri': track['uri'].toString(),
-              'cover': coverUrl,
+              'cover': (track['album']['images'] as List).isNotEmpty ? track['album']['images'][0]['url'].toString() : '',
             };
           }).toList();
         }
       }
     } catch (e) {
-      print('Error buscant: $e');
+      print('Error buscant cançons: $e');
     }
     return [];
   }
-
 
   Future<List<Map<String, String>>> searchArtists(String query) async {
     if (query.isEmpty) return [];
 
     try {
-      const String clientId = 'c23d9c5e2c574f2caef31066aa6a361e';
-      const String clientSecret = 'e81e949f21ee4d61a6e0d4fdd1bcfd93';
-
       String credentials = base64.encode(utf8.encode('$clientId:$clientSecret'));
 
-      // Fem servir l'URL oficial de Spotify per al token
       final tokenResponse = await http.post(
         Uri.parse('https://accounts.spotify.com/api/token'),
         headers: {
@@ -97,26 +103,19 @@ class spotifyServices {
       );
 
       if (tokenResponse.statusCode == 200) {
-        final tokenData = jsonDecode(tokenResponse.body);
-        final accessToken = tokenData['access_token'];
+        final accessToken = jsonDecode(tokenResponse.body)['access_token'];
 
-        // Cerca només artistes (type=artist)
-        final searchUrl = Uri.parse('https://api.spotify.com/v1/search?q=$query&type=artist&limit=10');
+        final searchUrl = Uri.parse('https://api.spotify.com/v1/search?q=${Uri.encodeComponent(query)}&type=artist&limit=10');
         final searchResponse = await http.get(searchUrl, headers: {'Authorization': 'Bearer $accessToken'});
 
         if (searchResponse.statusCode == 200) {
-          final searchData = jsonDecode(searchResponse.body);
-          final artists = searchData['artists']['items'] as List;
+          final artists = jsonDecode(searchResponse.body)['artists']['items'] as List;
 
           return artists.map((artist) {
-            String coverUrl = '';
-            if (artist['images'] != null && artist['images'].isNotEmpty) {
-              coverUrl = artist['images'][0]['url'].toString(); // Agafem la imatge de l'artista
-            }
             return {
               'name': artist['name'].toString(),
               'uri': artist['uri'].toString(),
-              'image': coverUrl,
+              'image': (artist['images'] as List).isNotEmpty ? artist['images'][0]['url'].toString() : '',
             };
           }).toList();
         }
@@ -127,8 +126,17 @@ class spotifyServices {
     return [];
   }
 
-  Future<void> play(String spotifyUri) async => await SpotifySdk.play(spotifyUri: spotifyUri);
+  Future<void> play(String spotifyUri) async {
+    try {
+      await SpotifySdk.play(spotifyUri: spotifyUri);
+    } catch (e) {
+      print("Error play: $e");
+    }
+  }
+
   Future<void> pause() async => await SpotifySdk.pause();
+
   Future<void> resume() async => await SpotifySdk.resume();
+
   Future<void> seekTo(int ms) async => await SpotifySdk.seekTo(positionedMilliseconds: ms);
 }

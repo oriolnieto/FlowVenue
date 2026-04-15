@@ -9,12 +9,13 @@ import 'package:flowvenue/model/users_model.dart';
 class DbServices {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
-  Future<Festa?> getFestaByAccessCode(int codiAcces) async {  // passem el codi d'acces del pinput per validar-ho!
+
+  Future<Festa?> getFestaByAccessCode(int codiAcces) async {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('festes')
           .where('codi_acces', isEqualTo: codiAcces)
-          .where('actividad', isEqualTo: true) // necessitem veure si esta activa, ja que si no ho estigues, no deixar entrar
+          .where('actividad', isEqualTo: true)
           .limit(1)
           .get();
 
@@ -97,6 +98,7 @@ class DbServices {
         .snapshots();
   }
 
+  // --- CANVI AQUÍ: GUARDEM LA URI ---
   Future<void> solLicitardCanco(String idFesta, Map<String, dynamic> canco) async {
     try {
       String docId = canco['title'].toString().replaceAll('/', '-');
@@ -111,6 +113,7 @@ class DbServices {
           'title': canco['title'],
           'artist': canco['artist'],
           'cover': canco['cover'] ?? '',
+          'uri': canco['uri'], // <--- AIXÒ ÉS EL QUE FALTAVA
           'votes': 1,
         });
       }
@@ -128,17 +131,25 @@ class DbServices {
       print('Error votant cançó: $e');
     }
   }
-// Fix de l'error: "parametre no definit imageUrl"
+
+  Future<void> eliminarCanco(String idFesta, String docId) async {
+    try {
+      await _db.collection('festes').doc(idFesta).collection('votacions').doc(docId).delete();
+    } catch (e) {
+      print('Error eliminant cançó: $e');
+    }
+  }
+
   Future<bool> crearPost({
     required String username,
     String? content,
-    String? imageUrl, // Ara està clarament definit com a paràmetre
+    String? imageUrl,
   }) async {
     try {
       await _db.collection('posts').add({
         'username': username,
         'content': content ?? '',
-        'imageUrl': imageUrl ?? '', // Si és null, guardem buit
+        'imageUrl': imageUrl ?? '',
         'likes': 0,
         'timestamp': FieldValue.serverTimestamp(),
       });
@@ -149,7 +160,6 @@ class DbServices {
     }
   }
 
-  // Si vols pujar la foto a Storage abans de crear el post:
   Future<String?> pujarFoto(File imageFile) async {
     try {
       String name = 'posts/${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -161,7 +171,6 @@ class DbServices {
     }
   }
 
-  /// Stream per carregar els posts en temps real a la UI
   Stream<QuerySnapshot> escoltarPosts() {
     return _db
         .collection('posts')
