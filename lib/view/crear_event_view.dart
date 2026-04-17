@@ -21,9 +21,14 @@ class _CrearEventViewState extends State<CrearEventView> {
   final TextEditingController _fechaController = TextEditingController();
   final TextEditingController _localizacionController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
+  final TextEditingController _estilosController = TextEditingController();
   final TextEditingController _precioController = TextEditingController();
   final TextEditingController _artistasController = TextEditingController();
   final TextEditingController _codigoController = TextEditingController();
+
+  final List<String> _opcionesEstilos = ["Reggaeton", "Techno", "Trap", "Pop", "Rock", "House", "Indie", "Salsa", "Bachata"];
+  List<String> _estilosSeleccionados = [];
+
 
   // Variable per guardar la imatge seleccionada
   File? _imatgeSeleccionada;
@@ -34,6 +39,7 @@ class _CrearEventViewState extends State<CrearEventView> {
     _fechaController.dispose();
     _localizacionController.dispose();
     _urlController.dispose();
+    _estilosController.dispose();
     _precioController.dispose();
     _artistasController.dispose();
     _codigoController.dispose();
@@ -78,6 +84,50 @@ class _CrearEventViewState extends State<CrearEventView> {
                 _fechaController.text = "${dataEscollida.day}/${dataEscollida.month}/${dataEscollida.year}";
       });
     }
+  }
+
+  void _mostrarSelectorEstilos() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Estilos de Música"),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: _opcionesEstilos.map((estilo) {
+                    return CheckboxListTile(
+                      activeColor: const Color(0xFFE94E77),
+                      title: Text(estilo),
+                      value: _estilosSeleccionados.contains(estilo),
+                      onChanged: (bool? selected) {
+                        setDialogState(() {
+                          if (selected == true) {
+                            _estilosSeleccionados.add(estilo);
+                          } else {
+                            _estilosSeleccionados.remove(estilo);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() => _estilosController.text = _estilosSeleccionados.join(", "));
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Confirmar", style: TextStyle(color: Color(0xFFE94E77))),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   // --- FUNCIÓ PER SIMULAR EL MAPA ---
@@ -165,9 +215,12 @@ class _CrearEventViewState extends State<CrearEventView> {
 
                     _buildTextField("URL", _urlController, keyboardType: TextInputType.url),
 
+
+
                     _buildTextField("Precio", _precioController, keyboardType: TextInputType.number),
 
-                    _buildArtistasField(),
+                          _buildEstilosField(),
+                          _buildArtistasField(),
 
                     // CAMP CODI D'ACCÉS (Màxim 5, només números, avís si hi ha text)
                     _buildCodeField("Código de Acceso (max 5num)", _codigoController),
@@ -184,97 +237,10 @@ class _CrearEventViewState extends State<CrearEventView> {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                                 elevation: 5,
                               ),
-                              onPressed: () async {
-                                // Aquí s'enviarien les dades a Firebase
-                                // 1. Validacions
-                                if (_nombreController.text.isEmpty ||
-                                    _fechaController.text.isEmpty ||
-                                    _codigoController.text.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text(
-                                        'Por favor, rellena los campos obligatorios'),
-                                        backgroundColor: Colors.green),
-                                  );
-                                  return;
-                                }
-
-                                try {
-
-                                  // Mostrar un indicador de càrrega per si la foto triga uns segons a pujar
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFE94E77))),
-                                  );
-
-
-                                  String urlDescarrega = '';
-
-                                  if (_imatgeSeleccionada != null) {
-                                    // Creem una referència única per a la imatge
-                                    String idImatge = DateTime.now().millisecondsSinceEpoch.toString();
-                                    Reference ref = FirebaseStorage.instance.ref().child('festes_images/$idImatge.jpg');
-
-                                    // Pugem l'arxiu
-                                    UploadTask uploadTask = ref.putFile(_imatgeSeleccionada!);
-
-                                    // Esperem que la pujada acabi
-                                    TaskSnapshot snapshot = await uploadTask;
-
-                                    // Obtenim la URL pública (Això és el que Firestore necessita)
-                                    urlDescarrega = await snapshot.ref.getDownloadURL();
-                                    print("✅ URL obtinguda correctament: $urlDescarrega");
-                                  }
-
-                                  List<String> dateParts = _fechaController.text.split('/');
-                                  DateTime fechaFesta = DateTime(int.parse(dateParts[2]), int.parse(dateParts[1]), int.parse(dateParts[0]));
-                                  double preuFesta = double.tryParse(_precioController.text) ?? 0.0;
-
-
-                                  // --- 4. CREAR EL MAPA MANUALMENT ---
-                                  // Ho fem manualment per evitar que el model Festa.toFirestore() sobreescrigui el camp 'imatge' amb un buit
-                                  Map<String, dynamic> dadesPerEnviar = {
-                                    'nom': _nombreController.text, // El buscador busca 'nom'
-                                    'name': _nombreController.text, // Per si de cas
-                                    'fecha_evento': fechaFesta,
-                                    'localizacion': _localizacionController.text,
-                                    'precio': preuFesta,
-                                    'imatge': urlDescarrega, // <--- AQUÍ guardem la URL que acabem d'obtenir
-                                    'codiAcces': int.parse(_codigoController.text),
-                                    'artista': _artistasController.text,
-                                    'actividad': true,
-                                  };
-
-
-                                  await FirebaseFirestore.instance.collection('festes').add(dadesPerEnviar);
-
-
-                                  if (mounted) Navigator.pop(context);
-
-
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Evento creado correctamente!'), backgroundColor: Colors.green),
-                                  );
-
-                                  Navigator.pop(context);
-
-                                } catch (e) {
-                                  if (mounted) Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error al crear evento: $e'), backgroundColor: Colors.red),
-                                  );
-                                }
-
-                                },
-
-                              child: const Text(
-                                "Crear Evento",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                              ),
+                              onPressed: _crearEventoFirebase,
+                              child: const Text("Crear Evento", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                             ),
                           ),
-
                           const SizedBox(height: 30),
                           const Text("©2026 FlowVenue by Oriol&Jan", style: TextStyle(color: Colors.white54, fontSize: 10)),
                           const SizedBox(height: 20),
@@ -286,7 +252,52 @@ class _CrearEventViewState extends State<CrearEventView> {
     );
   }
 
+  // --- LOGICA DE FIREBASE ---
 
+  Future<void> _crearEventoFirebase() async {
+    if (_nombreController.text.isEmpty || _fechaController.text.isEmpty || _codigoController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rellena los campos obligatorios')));
+      return;
+    }
+
+    try {
+      showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFE94E77))));
+
+      String urlDescarrega = '';
+      if (_imatgeSeleccionada != null) {
+        String idImatge = DateTime.now().millisecondsSinceEpoch.toString();
+        Reference ref = FirebaseStorage.instance.ref().child('festes_images/$idImatge.jpg');
+        await ref.putFile(_imatgeSeleccionada!);
+        urlDescarrega = await ref.getDownloadURL();
+      }
+
+      List<String> dateParts = _fechaController.text.split('/');
+      DateTime fechaFesta = DateTime(int.parse(dateParts[2]), int.parse(dateParts[1]), int.parse(dateParts[0]));
+
+      Map<String, dynamic> dadesPerEnviar = {
+        'nom': _nombreController.text,
+        'name': _nombreController.text,
+        'fecha_evento': fechaFesta,
+        'localizacion': _localizacionController.text,
+        'precio': double.tryParse(_precioController.text) ?? 0.0,
+        'imatge': urlDescarrega,
+        'codiAcces': int.parse(_codigoController.text),
+        'artista': _artistasController.text,
+        'tipoFesta': _estilosSeleccionados, // Guardat com a Array
+        'actividad': true,
+      };
+
+      await FirebaseFirestore.instance.collection('festes').add(dadesPerEnviar);
+
+      if (mounted) Navigator.pop(context); // Tanca loding
+      Navigator.pop(context); // Torna enrere
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('¡Evento creado!'), backgroundColor: Colors.green));
+
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      print("Error: $e");
+    }
+  }
 
   // --- WIDGETS AUXILIARS ---
 
@@ -294,161 +305,67 @@ class _CrearEventViewState extends State<CrearEventView> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        CircleAvatar(
-          backgroundColor: Colors.white,
-          radius: 20,
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        Image.asset('assets/Logo_FlowVenue.png', height: 50),
+        IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+        Image.asset('assets/Logo_FlowVenue.png', height: 40),
         const SizedBox(width: 40),
       ],
     );
   }
 
   Widget _buildImagePicker() {
-    return Column(
-      children: [
-        Stack(
-          alignment: Alignment.bottomRight,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                image: _imatgeSeleccionada != null
-                    ? DecorationImage(image: FileImage(_imatgeSeleccionada!), fit: BoxFit.cover)
-                    : null,
-              ),
-              child: _imatgeSeleccionada == null
-                  ? const Icon(Icons.image, size: 60, color: Colors.black)
-                  : null,
-            ),
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: GestureDetector(
-                onTap: _seleccionarImatge,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1B1CB),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: const Icon(Icons.edit, size: 20, color: Colors.black),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        const Text("Imagen del Evento", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ],
+    return GestureDetector(
+      onTap: _seleccionarImatge,
+      child: CircleAvatar(
+        radius: 60,
+        backgroundColor: Colors.white,
+        backgroundImage: _imatgeSeleccionada != null ? FileImage(_imatgeSeleccionada!) : null,
+        child: _imatgeSeleccionada == null ? const Icon(Icons.camera_alt, size: 40, color: Colors.black) : null,
+      ),
     );
   }
 
   Widget _buildTextField(String label, TextEditingController controller, {TextInputType keyboardType = TextInputType.text}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(height: 5),
-          TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            ),
-          ),
-        ],
-      ),
-    );
+    return _baseField(label, TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold),
+      decoration: _inputDeco(),
+    ));
   }
 
-
-  // Textfield per a Data i Localització (Són ReadOnly i s'activen al fer-hi clic)
   Widget _buildReadOnlyField(String label, TextEditingController controller, {required VoidCallback onTap}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(height: 5),
-          TextField(
-            controller: controller,
-            readOnly: true, // L'usuari no pot escriure lliurement
-            onTap: onTap, // Executa la funció (calendari o mapa)
-            style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            ),
-          ),
-        ],
-      ),
-    );
+    return _baseField(label, TextField(
+      controller: controller,
+      readOnly: true,
+      onTap: onTap,
+      style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold),
+      decoration: _inputDeco(),
+    ));
+  }
+
+  Widget _buildEstilosField() {
+    return _buildReadOnlyField("Estilos de Música", _estilosController, onTap: _mostrarSelectorEstilos);
   }
 
   Widget _buildArtistasField() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Artistas Invitados", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(height: 5),
-          TextField(
-            controller: _artistasController,
-            readOnly: true, // Bloquegem el teclat
-            onTap: () async {
-              // Naveguem i esperem resposta
-              final String? nomArtista = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const BuscarArtistaView()),
-              );
-
-              // Si ha triat un artista, l'afegim al controlador
-              if (nomArtista != null) {
-                setState(() {
-                  if (_artistasController.text.isEmpty) {
-                    _artistasController.text = nomArtista;
-                  } else {
-                    _artistasController.text += ", $nomArtista"; // Afegim amb coma si ja n'hi ha un altre
-                  }
-                });
-              }
-            },
-            style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold), // Color rosa com demanes
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              hintText: "Toca para buscar artista",
-              hintStyle: const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal),
-            ),
-          ),
-        ],
-      ),
-    );
+    return _buildReadOnlyField("Artistas Invitados", _artistasController, onTap: () async {
+      final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const BuscarArtistaView()));
+      if (result != null) setState(() => _artistasController.text.isEmpty ? _artistasController.text = result : _artistasController.text += ", $result");
+    });
   }
 
-  // Textfield especial pel Codi (5 números)
   Widget _buildCodeField(String label, TextEditingController controller) {
+    return _baseField(label, TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(5)],
+      style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold),
+      decoration: _inputDeco(),
+    ));
+  }
+
+  // Helpers de disseny
+  Widget _baseField(String label, Widget child) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: Column(
@@ -456,32 +373,18 @@ class _CrearEventViewState extends State<CrearEventView> {
         children: [
           Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
           const SizedBox(height: 5),
-          TextField(
-            controller: controller,
-            keyboardType: TextInputType.number, // Obre teclat numèric
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly, // NOMÉS NÚMEROS
-              LengthLimitingTextInputFormatter(5),    // MÀXIM 5 DÍGITS
-            ],
-            style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold, letterSpacing: 2.0),
-            onChanged: (value) {
-              // Si d'alguna manera intenten enganxar text invàlid, podem avisar-los
-              if (value.contains(RegExp(r'[A-Za-z]'))) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('El código solo puede contener números.'), backgroundColor: Colors.red),
-                );
-              }
-            },
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            ),
-          ),
+          child,
         ],
       ),
     );
   }
-}
 
+  InputDecoration _inputDeco() {
+    return InputDecoration(
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+    );
+  }
+}
