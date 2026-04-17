@@ -6,6 +6,7 @@ import 'package:flowvenue/view/buscar_artista_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flowvenue/model/party_model.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:flowvenue/services/spotifyServices.dart';
 
@@ -19,6 +20,8 @@ class CrearEventView extends StatefulWidget {
 class _CrearEventViewState extends State<CrearEventView> {
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _fechaController = TextEditingController();
+  final TextEditingController _horaInicioController = TextEditingController();
+  final TextEditingController _horaFinController = TextEditingController();
   final TextEditingController _localizacionController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _estilosController = TextEditingController();
@@ -31,7 +34,8 @@ class _CrearEventViewState extends State<CrearEventView> {
 
 
   // Variable per guardar la imatge seleccionada
-  File? _imatgeSeleccionada;
+  XFile? _imatgeXFile;
+  Uint8List? _imatgeBytes;
 
   @override
   void dispose() {
@@ -52,8 +56,10 @@ class _CrearEventViewState extends State<CrearEventView> {
     final XFile? imatge = await picker.pickImage(source: ImageSource.gallery);
 
     if (imatge != null) {
+      final bytes = await imatge.readAsBytes();
       setState(() {
-        _imatgeSeleccionada = File(imatge.path);
+        _imatgeXFile = imatge;
+        _imatgeBytes = bytes;
       });
     }
   }
@@ -63,28 +69,36 @@ class _CrearEventViewState extends State<CrearEventView> {
     DateTime? dataEscollida = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime.now(), // No permetre dates passades
+      firstDate: DateTime.now(),
       lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFFE94E77), // Color de la capçalera
-              onPrimary: Colors.white, // Color del text de la capçalera
-              onSurface: Colors.black, // Color dels dies
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(primary: Color(0xFFE94E77)),
+        ),
+        child: child!,
+      ),
     );
-
     if (dataEscollida != null) {
-      setState(() {
-                _fechaController.text = "${dataEscollida.day}/${dataEscollida.month}/${dataEscollida.year}";
-      });
+      setState(() => _fechaController.text = "${dataEscollida.day}/${dataEscollida.month}/${dataEscollida.year}");
     }
   }
+
+  Future<void> _seleccionarHoraInici() async {
+    TimeOfDay? t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+    if (t != null) {
+      setState(() => _horaInicioController.text = t.format(context));
+    }
+  }
+
+  // NOU: Selector d'hora final
+  Future<void> _seleccionarHoraFi() async {
+    TimeOfDay? t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+    if (t != null) {
+      setState(() => _horaFinController.text = t.format(context));
+    }
+  }
+
+
 
   void _mostrarSelectorEstilos() {
     showDialog(
@@ -264,10 +278,12 @@ class _CrearEventViewState extends State<CrearEventView> {
       showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFE94E77))));
 
       String urlDescarrega = '';
-      if (_imatgeSeleccionada != null) {
+      if (_imatgeBytes != null) {
         String idImatge = DateTime.now().millisecondsSinceEpoch.toString();
         Reference ref = FirebaseStorage.instance.ref().child('festes_images/$idImatge.jpg');
-        await ref.putFile(_imatgeSeleccionada!);
+
+        // CORRECCIÓ: putData és compatible amb Web i Mòbil quan fem servir bytes
+        await ref.putData(_imatgeBytes!);
         urlDescarrega = await ref.getDownloadURL();
       }
 
@@ -318,8 +334,8 @@ class _CrearEventViewState extends State<CrearEventView> {
       child: CircleAvatar(
         radius: 60,
         backgroundColor: Colors.white,
-        backgroundImage: _imatgeSeleccionada != null ? FileImage(_imatgeSeleccionada!) : null,
-        child: _imatgeSeleccionada == null ? const Icon(Icons.camera_alt, size: 40, color: Colors.black) : null,
+        backgroundImage: _imatgeBytes != null ? MemoryImage(_imatgeBytes!) : null,
+        child: _imatgeBytes == null ? const Icon(Icons.camera_alt, size: 40, color: Colors.black) : null,
       ),
     );
   }
