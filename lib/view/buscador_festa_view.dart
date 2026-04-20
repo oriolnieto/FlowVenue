@@ -28,7 +28,7 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
     _carregarFestesGuardades();
   }
 
-  // --- CARREGA DE DADES ---
+  // --- CÀRREGA DE DADES ---
   Future<void> _carregarFestes() async {
     try {
       final snapshot = await FirebaseFirestore.instance.collection('festes').get();
@@ -64,23 +64,26 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
   void _aplicarFiltres() {
     setState(() {
       _festesFiltrades = _totesLesFestes.where((festa) {
-        // Cercador per text
-        final nom = (festa['nom'] ?? festa['name'] ?? '').toString().toLowerCase();
+        // Cercador per text (Nom o Artista)
+        final nom = (festa['nom'] ?? '').toString().toLowerCase();
         final artista = (festa['artista'] ?? '').toString().toLowerCase();
         final cercaValida = _searchText.isEmpty || nom.contains(_searchText) || artista.contains(_searchText);
 
         // Filtre per Data
         bool dataValida = true;
-        final dataFirebase = festa['fecha_evento'] ?? festa['fechaEvento'];
-        if (_filtreData != null && dataFirebase != null) {
-          DateTime dataFesta = (dataFirebase is Timestamp) ? dataFirebase.toDate() : DateTime.parse(dataFirebase.toString());
-          dataValida = dataFesta.year == _filtreData!.year && dataFesta.month == _filtreData!.month && dataFesta.day == _filtreData!.day;
+        // Si és un artista promocionat, solem permetre que surti sempre o segons la seva data de creació
+        if (_filtreData != null && festa['tipus'] != 'artista') {
+          final dataFirebase = festa['fecha_evento'] ?? festa['fechaEvento'];
+          if (dataFirebase != null) {
+            DateTime dataFesta = (dataFirebase is Timestamp) ? dataFirebase.toDate() : DateTime.parse(dataFirebase.toString());
+            dataValida = dataFesta.year == _filtreData!.year && dataFesta.month == _filtreData!.month && dataFesta.day == _filtreData!.day;
+          }
         }
 
-        // Filtre per Preu
+        // Filtre per Preu (Només s'aplica a festes, els artistes solen ser 0€ o "a consultar")
         bool preuValid = true;
-        if (_haFiltratPreu) {
-          final preu = (festa['precio'] ?? festa['preu'] ?? 0).toDouble();
+        if (_haFiltratPreu && festa['tipus'] != 'artista') {
+          final preu = (festa['precio'] ?? 0).toDouble();
           preuValid = preu >= _filtrePreu.start && preu <= _filtrePreu.end;
         }
 
@@ -144,23 +147,29 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
   }
 
   // --- POP-UP DETALLS ---
-  void _mostrarDetallsFesta(Map<String, dynamic> festa) {
+  void _mostrarDetalls(Map<String, dynamic> item) {
+    bool esArtista = item['tipus'] == 'artista';
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(festa['nom'] ?? 'Detalles', style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
+        title: Text(item['nom'] ?? 'Detalles', style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _itemPopUp(Icons.calendar_today, "Fecha", _formatarData(festa['fecha_evento'])),
-              _itemPopUp(Icons.access_time, "Horario", "${festa['hora_inicio'] ?? '--'} - ${festa['hora_fin'] ?? '--'}"),
-              _itemPopUp(Icons.location_on, "Ubicación", festa['localizacion'] ?? 'No disponible'),
-              _itemPopUp(Icons.euro, "Precio", "${festa['precio'] ?? 0} €"),
-              _itemPopUp(Icons.person, "Artista", festa['artista'] ?? 'No especificado'),
-              _itemPopUp(Icons.music_note, "Estilos", (festa['tipoFesta'] is List) ? (festa['tipoFesta'] as List).join(", ") : 'Varios'),
-              _itemPopUp(Icons.vpn_key, "Código", "${festa['codiAcces'] ?? 'Privado'}"),
+              if (esArtista) ...[
+                _itemPopUp(Icons.person, "Perfil", "Artista verificado"),
+                _itemPopUp(Icons.description, "Descripción", item['descripcio'] ?? 'Sin descripción'),
+                _itemPopUp(Icons.star, "Disponibilidad", "Consultar agenda en perfil"),
+              ] else ...[
+                _itemPopUp(Icons.calendar_today, "Fecha", _formatarData(item['fecha_evento'])),
+                _itemPopUp(Icons.access_time, "Horario", "${item['hora_inicio'] ?? '--'} - ${item['hora_fin'] ?? '--'}"),
+                _itemPopUp(Icons.location_on, "Ubicación", item['localizacion'] ?? 'No disponible'),
+                _itemPopUp(Icons.euro, "Precio", "${item['precio'] ?? 0} €"),
+                _itemPopUp(Icons.music_note, "Estilos", (item['tipoFesta'] is List) ? (item['tipoFesta'] as List).join(", ") : 'Varios'),
+              ],
             ],
           ),
         ),
@@ -187,13 +196,13 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
     return "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}";
   }
 
-  Future<void> _toggleGuardarFesta(Map<String, dynamic> festa) async {
+  Future<void> _toggleGuardar(Map<String, dynamic> item) async {
     if (widget.usuariActual == null) return;
-    final String id = festa['id'];
+    final String id = item['id'];
     final docRef = FirebaseFirestore.instance.collection('users').doc(widget.usuariActual!.userId).collection('agenda').doc(id);
     setState(() {
       if (_festesGuardades.contains(id)) { _festesGuardades.remove(id); docRef.delete(); }
-      else { _festesGuardades.add(id); docRef.set({'festaId': id, 'nom': festa['nom'], 'data': festa['fecha_evento']}); }
+      else { _festesGuardades.add(id); docRef.set({'festaId': id, 'nom': item['nom'], 'data': item['fecha_evento']}); }
     });
   }
 
@@ -210,7 +219,7 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
             _buildFilterCarousel(),
             Expanded(
               child: _festesFiltrades.isEmpty
-                  ? const Center(child: Text("No hay fiestas disponibles", style: TextStyle(color: Colors.white)))
+                  ? const Center(child: Text("No se han encontrado resultados", style: TextStyle(color: Colors.white)))
                   : ListView.builder(
                 padding: const EdgeInsets.all(20),
                 itemCount: _festesFiltrades.length,
@@ -223,32 +232,44 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
     );
   }
 
-  Widget _buildEventCard(Map<String, dynamic> festa) {
-    final bool estaGuardada = _festesGuardades.contains(festa['id']);
+  Widget _buildEventCard(Map<String, dynamic> item) {
+    final bool estaGuardada = _festesGuardades.contains(item['id']);
+    final bool esArtista = item['tipus'] == 'artista';
+
     return GestureDetector(
-      onTap: () => _mostrarDetallsFesta(festa),
+      onTap: () => _mostrarDetalls(item),
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(20),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: esArtista ? Border.all(color: const Color(0xFFE94E77), width: 2) : null,
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))]
         ),
         child: Row(children: [
+          Icon(esArtista ? Icons.star : Icons.music_note, color: const Color(0xFFE94E77), size: 28),
+          const SizedBox(width: 15),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(festa['nom'] ?? 'Evento', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            Row(
+              children: [
+                Text(item['nom'] ?? 'Evento', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                if (esArtista) const Padding(
+                  padding: EdgeInsets.only(left: 5),
+                  child: Icon(Icons.verified, color: Colors.blue, size: 16),
+                ),
+              ],
+            ),
             const SizedBox(height: 5),
-            Row(children: [
-              const Icon(Icons.calendar_today, size: 12, color: Color(0xFFE94E77)),
-              const SizedBox(width: 5),
-              Text("${_formatarData(festa['fecha_evento'])}  •  ${festa['hora_inicio'] ?? '00:00'}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
-            ]),
-            Text(festa['localizacion'] ?? 'Sin ubicación', style: const TextStyle(color: Colors.black54, fontSize: 12)),
+            Text(
+                esArtista ? "Artista disponible" : "${_formatarData(item['fecha_evento'])} • ${item['localizacion'] ?? 'Ubicación'}",
+                style: const TextStyle(color: Colors.black54, fontSize: 12)
+            ),
           ])),
-          Text("${festa['precio'] ?? 0}€", style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
+          if (!esArtista) Text("${item['precio'] ?? 0}€", style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
           IconButton(
             icon: Icon(estaGuardada ? Icons.bookmark : Icons.bookmark_border, color: estaGuardada ? Colors.black : Colors.grey),
-            onPressed: () => _toggleGuardarFesta(festa),
+            onPressed: () => _toggleGuardar(item),
           )
         ]),
       ),
