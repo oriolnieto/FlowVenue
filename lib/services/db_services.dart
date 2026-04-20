@@ -75,6 +75,7 @@ class DbServices {
         role: 'usuario',
         phone: 0,
         favouriteGeneres: [],
+        artistaSpotify: null,
       );
 
       await nouDoc.set(nouUsuari.toFirestore());

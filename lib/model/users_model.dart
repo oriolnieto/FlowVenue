@@ -10,6 +10,7 @@ class Usuari {
 
   final int phone;
   final List<String> favouriteGeneres;
+  final String? artistaSpotify;
 
 
   Usuari({
@@ -21,6 +22,7 @@ class Usuari {
     required this.role,
     required this.phone,
     required this.favouriteGeneres,
+    required this.artistaSpotify
 
 
   });
@@ -36,6 +38,7 @@ class Usuari {
       role: data['role'] ?? 'user',
       phone:  data['phone'] ?? 685778546,
       favouriteGeneres: List<String>.from(data['favourite_generes'] ?? []),
+      artistaSpotify: data['artistaSpotify'],
     );
   }
 
@@ -48,6 +51,7 @@ class Usuari {
       'role': role,
       'phone': phone,
       'favourite_generes': favouriteGeneres,
+      'artistaSpotify': artistaSpotify,
     };
   }
 

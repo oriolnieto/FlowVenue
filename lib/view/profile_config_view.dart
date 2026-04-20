@@ -26,12 +26,37 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
     super.initState();
     _usuariLocal = widget.usuariActual;
     _nameController = TextEditingController(text: widget.usuariActual.username);
+    // Carreguem l'artista que ja està guardat a la base de dades (si n'hi ha)
+    _artistaSpotifySeleccionat = widget.usuariActual.artistaSpotify;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  // Funció per guardar el vincle amb Spotify permanentment
+  Future<void> _vincularArtistaSpotify(String nomArtista) async {
+    Usuari usuariActualitzat = Usuari(
+      userId: _usuariLocal.userId,
+      userIdInt: _usuariLocal.userIdInt,
+      username: _usuariLocal.username,
+      password: _usuariLocal.password,
+      email: _usuariLocal.email,
+      role: _usuariLocal.role,
+      phone: _usuariLocal.phone,
+      favouriteGeneres: _usuariLocal.favouriteGeneres,
+      artistaSpotify: nomArtista, // Nou valor
+    );
+
+    bool ok = await DbServices().updatePerfil(usuariActualitzat);
+    if (ok) {
+      setState(() {
+        _artistaSpotifySeleccionat = nomArtista;
+        _usuariLocal = usuariActualitzat;
+      });
+    }
   }
 
   @override
@@ -61,21 +86,14 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
               child: Column(
                 children: [
                   _buildHeader(),
-
-                  // --- LOGO GRAN ---
                   const SizedBox(height: 40),
                   Image.asset('assets/Logo_FlowVenue.png', height: 140),
                   const SizedBox(height: 40),
-
-                  // BOTÓ RÀPID AGENDA
                   _buildAgendaButton(),
                   const SizedBox(height: 30),
-
-                  // Camps del formulari
                   _buildTextField("Usuario", _nameController, Icons.edit),
                   _buildReadOnlyField("Rol actual", _usuariLocal.role.toUpperCase()),
 
-                  // Sol·licitud de canvi de rol
                   TextButton(
                     onPressed: () => _canviarRol(),
                     child: const Text("Solicitar cambio de rol",
@@ -84,10 +102,9 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
 
                   const SizedBox(height: 30),
 
-                  // --- CAMP EXCLUSIU PER A ARTISTES ---
+                  // SECCIÓ SPOTIFY PER ARTISTES
                   if (isArtista) _buildSpotifySelector(),
 
-                  // BOTONS D'ACCIÓ SEGONS EL ROL
                   if (isServei)
                     _buildActionBtn("+ Crear Evento", () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const CrearEventView()));
@@ -95,7 +112,9 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
 
                   if (isArtista)
                     _buildActionBtn("Promocionarme", () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const PromocionarmeView()));
+                      Navigator.push(context, MaterialPageRoute(
+                          builder: (context) => PromocionarmeView(nomArtistaSpotify: _artistaSpotifySeleccionat)
+                      ));
                     }),
 
                   const SizedBox(height: 50),
@@ -111,31 +130,70 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
     );
   }
 
-  // --- BOTÓ DE L'AGENDA ---
-  Widget _buildAgendaButton() {
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-        elevation: 4,
+  Widget _buildSpotifySelector() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 25),
+      child: GestureDetector(
+        onTap: () async {
+          final String? nomArtista = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BuscarArtistaView())
+          );
+          if (nomArtista != null) {
+            _vincularArtistaSpotify(nomArtista);
+          }
+        },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          decoration: BoxDecoration(
+            color: _artistaSpotifySeleccionat != null ? const Color(0xFFD988B9) : Colors.white,
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [if(_artistaSpotifySeleccionat != null) const BoxShadow(color: Colors.black26, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  _artistaSpotifySeleccionat ?? "Identifícate como artista (Spotify)",
+                  style: TextStyle(
+                      color: _artistaSpotifySeleccionat != null ? Colors.white : Colors.black45,
+                      fontWeight: FontWeight.bold
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(
+                  _artistaSpotifySeleccionat != null ? Icons.verified : Icons.search,
+                  color: _artistaSpotifySeleccionat != null ? Colors.white : Colors.black54
+              ),
+            ],
+          ),
+        ),
       ),
-      onPressed: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const AgendaView()));
-      },
-      icon: const Icon(Icons.calendar_month, color: Color(0xFFE94E77)),
-      label: const Text("VER MI AGENDA", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
     );
   }
 
-  // --- LOGICA DE CAMBI DE ROL ---
+  // --- MÈTODES DE SUPORT (Iguals que el teu codi original corregit) ---
+
+  Widget _buildAgendaButton() {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white, foregroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+      ),
+      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgendaView())),
+      icon: const Icon(Icons.calendar_month, color: Color(0xFFE94E77)),
+      label: const Text("VER MI AGENDA", style: TextStyle(fontWeight: FontWeight.bold)),
+    );
+  }
+
   Future<void> _canviarRol() async {
     final String? nouRol = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => solicitud_rol_view(usuariActual: _usuariLocal)),
+      context, MaterialPageRoute(builder: (context) => solicitud_rol_view(usuariActual: _usuariLocal)),
     );
-
     if (nouRol != null) {
       Usuari usuariActualitzat = Usuari(
         userId: _usuariLocal.userId,
@@ -146,44 +204,12 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
         role: nouRol,
         phone: _usuariLocal.phone,
         favouriteGeneres: _usuariLocal.favouriteGeneres,
+        artistaSpotify: _usuariLocal.artistaSpotify,
       );
-
-      bool actualitzatDB = await DbServices().updatePerfil(usuariActualitzat);
-      if (actualitzatDB) {
+      if (await DbServices().updatePerfil(usuariActualitzat)) {
         setState(() => _usuariLocal = usuariActualitzat);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rol actualizado correctamente')));
-        }
       }
     }
-  }
-
-  Widget _buildSpotifySelector() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 25),
-      child: GestureDetector(
-        onTap: () async {
-          final String? nomArtista = await Navigator.push(context, MaterialPageRoute(builder: (context) => const BuscarArtistaView()));
-          if (nomArtista != null) setState(() => _artistaSpotifySeleccionat = nomArtista);
-        },
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-          decoration: BoxDecoration(
-            color: _artistaSpotifySeleccionat != null ? const Color(0xFFD988B9) : Colors.white,
-            borderRadius: BorderRadius.circular(25),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(_artistaSpotifySeleccionat ?? "Identifícate como artista (Spotify)",
-                  style: TextStyle(color: _artistaSpotifySeleccionat != null ? Colors.white : Colors.black45, fontWeight: FontWeight.bold)),
-              Icon(Icons.search, color: _artistaSpotifySeleccionat != null ? Colors.white : Colors.black54),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildActionBtn(String text, VoidCallback onPressed) {
@@ -196,7 +222,6 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
             backgroundColor: const Color(0xFFD988B9),
             padding: const EdgeInsets.symmetric(vertical: 15),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-            elevation: 5,
           ),
           onPressed: onPressed,
           child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
@@ -205,65 +230,34 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          backgroundColor: Colors.white,
-          radius: 20,
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
-            onPressed: () => Navigator.pop(context, _usuariLocal),
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _buildHeader() => Row(children: [CircleAvatar(backgroundColor: Colors.white, child: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context, _usuariLocal)))]);
 
   Widget _buildTextField(String label, TextEditingController controller, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 5),
-          TextField(
-            controller: controller,
-            style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold),
-            decoration: InputDecoration(
-              filled: true, fillColor: Colors.white,
-              suffixIcon: Icon(icon, color: Colors.black54),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            ),
-          ),
-        ],
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 5),
+      TextField(
+        controller: controller,
+        style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold),
+        decoration: InputDecoration(
+          filled: true, fillColor: Colors.white, suffixIcon: Icon(icon),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+        ),
       ),
-    );
+      const SizedBox(height: 15),
+    ]);
   }
 
   Widget _buildReadOnlyField(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 5),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: Colors.white30)
-            ),
-            child: Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-          ),
-        ],
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 5),
+      Container(
+        width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.white30)),
+        child: Text(value, style: const TextStyle(color: Colors.white)),
       ),
-    );
+    ]);
   }
 }
