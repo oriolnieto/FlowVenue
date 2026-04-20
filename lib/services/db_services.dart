@@ -12,14 +12,21 @@ class DbServices {
 
   Future<Festa?> getFestaByAccessCode(int codiAcces) async {
     try {
+      print('Buscant festa amb codi: $codiAcces'); // Debug per consola
+
       final snapshot = await FirebaseFirestore.instance
           .collection('festes')
-          .where('codi_acces', isEqualTo: codiAcces)
-          .where('actividad', isEqualTo: true)
+          .where('codiAcces', isEqualTo: codiAcces) // Nom corregit segons captura
+      // .where('actividad', isEqualTo: true) // COMENTAT TEMPORALMENT
           .limit(1)
           .get();
 
-      if (snapshot.docs.isEmpty) return null;
+      if (snapshot.docs.isEmpty) {
+        print('No s\'ha trobat cap festa amb el codi: $codiAcces');
+        return null;
+      }
+
+      print('Festa trobada!');
       return Festa.fromFirestore(snapshot.docs.first);
     } catch (e) {
       print('Error getFestaByAccessCode: $e');

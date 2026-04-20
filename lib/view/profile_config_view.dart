@@ -4,7 +4,7 @@ import 'package:flowvenue/model/users_model.dart';
 import 'package:flowvenue/view/solicitud_rol_view.dart';
 import 'package:flowvenue/view/promocionarme_view.dart';
 import 'package:flowvenue/view/buscar_artista_view.dart';
-import 'package:flowvenue/services/db_services.dart'; // IMPORTANT: Importem la base de dades
+import 'package:flowvenue/services/db_services.dart';
 import 'agenda_view.dart';
 
 class PerfilConfigView extends StatefulWidget {
@@ -18,18 +18,12 @@ class PerfilConfigView extends StatefulWidget {
 
 class _PerfilConfigViewState extends State<PerfilConfigView> {
   late TextEditingController _nameController;
-
-
-
   late Usuari _usuariLocal;
-
-  // VARIABLE PER GUARDAR L'ARTISTA DE SPOTIFY SELECCIONAT
   String? _artistaSpotifySeleccionat;
 
   @override
   void initState() {
     super.initState();
-    // Carreguem les dades reals de l'usuari als controladors
     _usuariLocal = widget.usuariActual;
     _nameController = TextEditingController(text: widget.usuariActual.username);
   }
@@ -42,7 +36,6 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
 
   @override
   Widget build(BuildContext context) {
-    // Verificació de permisos segons el rol
     bool isServei = _usuariLocal.isServei();
     bool isArtista = _usuariLocal.isArtista();
 
@@ -50,7 +43,6 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
       canPop: false,
       onPopInvoked: (didPop) {
         if (didPop) return;
-        // Retorna l'usuari actualitzat si l'usuari utilitza el botó físic d'anar enrere
         Navigator.pop(context, _usuariLocal);
       },
       child: Scaffold(
@@ -69,157 +61,47 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
               child: Column(
                 children: [
                   _buildHeader(),
-                  const SizedBox(height: 20),
-                  _buildProfileImage(),
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => print("Canviar contrasenya"),
-                    child: const Text("Actualitzar Contrasenya",
-                        style: TextStyle(color: Colors.white, decoration: TextDecoration.underline)),
-                  ),
-                  const SizedBox(height: 20),
 
-                  // Camps del formulari (SENSE EL TELÈFON)
+                  // --- LOGO GRAN ---
+                  const SizedBox(height: 40),
+                  Image.asset('assets/Logo_FlowVenue.png', height: 140),
+                  const SizedBox(height: 40),
+
+                  // BOTÓ RÀPID AGENDA
+                  _buildAgendaButton(),
+                  const SizedBox(height: 30),
+
+                  // Camps del formulari
                   _buildTextField("Usuario", _nameController, Icons.edit),
+                  _buildReadOnlyField("Rol actual", _usuariLocal.role.toUpperCase()),
 
-                  // Aquest camp mostrarà sempre el rol actualitzat a l'instant
-                  _buildReadOnlyField("Rol", _usuariLocal.role.toUpperCase()),
-
-                  const SizedBox(height: 15),
-
-                  // Botó per sol·licitar canvi de rol
+                  // Sol·licitud de canvi de rol
                   TextButton(
-                    onPressed: () async {
-                      // 1. Obrim la pantalla i esperem a veure quin rol ens retorna
-                      final String? nouRol = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => solicitud_rol_view(usuariActual: _usuariLocal),
-                        ),
-                      );
-
-                      // 2. Si l'usuari ha triat un nou rol (ha clicat "Sí, enviar")
-                      if (nouRol != null) {
-                        // Creem una còpia de l'usuari amb el ROL NOU
-                        Usuari usuariActualitzat = Usuari(
-                          userId: _usuariLocal.userId,
-                          userIdInt: _usuariLocal.userIdInt,
-                          username: _usuariLocal.username,
-                          password: _usuariLocal.password,
-                          email: _usuariLocal.email,
-                          role: nouRol, // <-- APLIQUEM EL NOU ROL
-                          phone: _usuariLocal.phone,
-                          favouriteGeneres: _usuariLocal.favouriteGeneres,
-                        );
-
-                        // 3. GUARDEM ELS CANVIS A FIREBASE AL MOMENT
-                        bool actualitzatDB = await DbServices().updatePerfil(usuariActualitzat);
-
-                        if (actualitzatDB) {
-                          // Si s'ha guardat bé a Firebase, actualitzem la vista
-                          setState(() {
-                            _usuariLocal = usuariActualitzat;
-                          });
-
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Rol actualizado con éxito en la base de datos', style: TextStyle(color: Colors.white)),
-                                  backgroundColor: Colors.green
-                              ),
-                            );
-                          }
-                        } else {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Error al actualizar el rol en la base de datos'), backgroundColor: Colors.red),
-                            );
-                          }
-                        }
-                      }
-                    },
+                    onPressed: () => _canviarRol(),
                     child: const Text("Solicitar cambio de rol",
-                        style: TextStyle(color: Colors.white, decoration: TextDecoration.underline, fontSize: 12)),
+                        style: TextStyle(color: Colors.white, decoration: TextDecoration.underline, fontSize: 13)),
                   ),
 
-                  // --- CAMP EXCLUSIU PER A ARTISTES (SPOTIFY) ---
-                  if (isArtista)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 25),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("Perfil Musical", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 5),
-                          GestureDetector(
-                            onTap: () async {
-                              final String? nomArtista = await Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const BuscarArtistaView()),
-                              );
+                  const SizedBox(height: 30),
 
-                              if (nomArtista != null) {
-                                setState(() {
-                                  _artistaSpotifySeleccionat = nomArtista;
-                                });
-                              }
-                            },
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                              decoration: BoxDecoration(
-                                color: _artistaSpotifySeleccionat != null ? const Color(0xFFD988B9) : Colors.white,
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _artistaSpotifySeleccionat ?? "Identifícate como artista (Spotify)",
-                                      style: TextStyle(
-                                        color: _artistaSpotifySeleccionat != null ? Colors.white : Colors.black45,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.search,
-                                    color: _artistaSpotifySeleccionat != null ? Colors.white : Colors.black54,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  // --- CAMP EXCLUSIU PER A ARTISTES ---
+                  if (isArtista) _buildSpotifySelector(),
 
-                  // BOTONS CONDICIONALS SEGONS EL ROL
+                  // BOTONS D'ACCIÓ SEGONS EL ROL
                   if (isServei)
                     _buildActionBtn("+ Crear Evento", () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CrearEventView(),
-                        ),
-                      );
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const CrearEventView()));
                     }),
 
                   if (isArtista)
                     _buildActionBtn("Promocionarme", () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PromocionarmeView(),
-                        ),
-                      );
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const PromocionarmeView()));
                     }),
-                  const SizedBox(height: 40),
+
+                  const SizedBox(height: 50),
                   const Text("©2026 FlowVenue by Oriol&Jan",
                       style: TextStyle(color: Colors.white54, fontSize: 10)),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -229,94 +111,113 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
     );
   }
 
-  Widget _buildActionBtn(String text, VoidCallback onPressed) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFD988B9),
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+  // --- BOTÓ DE L'AGENDA ---
+  Widget _buildAgendaButton() {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+        elevation: 4,
+      ),
+      onPressed: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const AgendaView()));
+      },
+      icon: const Icon(Icons.calendar_month, color: Color(0xFFE94E77)),
+      label: const Text("VER MI AGENDA", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+    );
+  }
+
+  // --- LOGICA DE CAMBI DE ROL ---
+  Future<void> _canviarRol() async {
+    final String? nouRol = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => solicitud_rol_view(usuariActual: _usuariLocal)),
+    );
+
+    if (nouRol != null) {
+      Usuari usuariActualitzat = Usuari(
+        userId: _usuariLocal.userId,
+        userIdInt: _usuariLocal.userIdInt,
+        username: _usuariLocal.username,
+        password: _usuariLocal.password,
+        email: _usuariLocal.email,
+        role: nouRol,
+        phone: _usuariLocal.phone,
+        favouriteGeneres: _usuariLocal.favouriteGeneres,
+      );
+
+      bool actualitzatDB = await DbServices().updatePerfil(usuariActualitzat);
+      if (actualitzatDB) {
+        setState(() => _usuariLocal = usuariActualitzat);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rol actualizado correctamente')));
+        }
+      }
+    }
+  }
+
+  Widget _buildSpotifySelector() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 25),
+      child: GestureDetector(
+        onTap: () async {
+          final String? nomArtista = await Navigator.push(context, MaterialPageRoute(builder: (context) => const BuscarArtistaView()));
+          if (nomArtista != null) setState(() => _artistaSpotifySeleccionat = nomArtista);
+        },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          decoration: BoxDecoration(
+            color: _artistaSpotifySeleccionat != null ? const Color(0xFFD988B9) : Colors.white,
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(_artistaSpotifySeleccionat ?? "Identifícate como artista (Spotify)",
+                  style: TextStyle(color: _artistaSpotifySeleccionat != null ? Colors.white : Colors.black45, fontWeight: FontWeight.bold)),
+              Icon(Icons.search, color: _artistaSpotifySeleccionat != null ? Colors.white : Colors.black54),
+            ],
+          ),
         ),
-        onPressed: onPressed,
-        child: Text(text,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+      ),
+    );
+  }
+
+  Widget _buildActionBtn(String text, VoidCallback onPressed) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFD988B9),
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            elevation: 5,
+          ),
+          onPressed: onPressed,
+          child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        ),
       ),
     );
   }
 
   Widget _buildHeader() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         CircleAvatar(
           backgroundColor: Colors.white,
+          radius: 20,
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            // AQUESTA LÍNIA ÉS CLAU: Quan tires enrere amb la fletxa, passem l'usuari actualitzat!
+            icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
             onPressed: () => Navigator.pop(context, _usuariLocal),
           ),
         ),
-        Image.asset('assets/Logo_FlowVenue.png', height: 50),
-        const SizedBox(width: 40),
       ],
-    );
-  }
-
-  Widget _buildProfileImage() {
-    return SizedBox(
-      width: 250,
-      height: 140,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const CircleAvatar(
-            radius: 60,
-            backgroundColor: Color(0xFFF1B1CB),
-            child: Icon(Icons.person, size: 70, color: Colors.black),
-          ),
-          Positioned(
-            left: 10,
-            bottom: 10,
-            child: _buildFloatingButton(Icons.calendar_month, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AgendaView()),
-              );
-            }),
-          ),
-          Positioned(
-            right: 10,
-            bottom: 10,
-            child: _buildFloatingButton(Icons.edit_note, () {
-              print("Editant perfil...");
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFloatingButton(IconData icon, VoidCallback onTap) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: CircleAvatar(
-        backgroundColor: Colors.white,
-        radius: 22,
-        child: IconButton(
-          icon: Icon(icon, size: 22, color: Colors.black),
-          onPressed: onTap,
-        ),
-      ),
     );
   }
 
@@ -330,11 +231,10 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
           const SizedBox(height: 5),
           TextField(
             controller: controller,
-            style: const TextStyle(color: Color(0xFFE94E77)),
+            style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold),
             decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              suffixIcon: Icon(icon, color: Colors.black),
+              filled: true, fillColor: Colors.white,
+              suffixIcon: Icon(icon, color: Colors.black54),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             ),
@@ -343,8 +243,6 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
       ),
     );
   }
-
-
 
   Widget _buildReadOnlyField(String label, String value) {
     return Padding(
@@ -357,8 +255,12 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), borderRadius: BorderRadius.circular(25)),
-            child: Text(value, style: const TextStyle(color: Colors.black45)),
+            decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: Colors.white30)
+            ),
+            child: Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
           ),
         ],
       ),

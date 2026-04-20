@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flowvenue/model/users_model.dart';
-
 import 'agenda_view.dart';
 
 class buscador_festa_view extends StatefulWidget {
-  final Usuari? usuariActual; // Afegit per saber si està registrat
+  final Usuari? usuariActual;
   const buscador_festa_view({super.key, this.usuariActual});
 
   @override
@@ -13,12 +12,10 @@ class buscador_festa_view extends StatefulWidget {
 }
 
 class _BuscadorFestaViewState extends State<buscador_festa_view> {
-  // Llistes per gestionar les dades
   List<Map<String, dynamic>> _totesLesFestes = [];
   List<Map<String, dynamic>> _festesFiltrades = [];
-  Set<String> _festesGuardades = {}; // Per controlar les festes desades (Icona Negra)
+  Set<String> _festesGuardades = {};
 
-  // Variables dels filtres
   String _searchText = "";
   DateTime? _filtreData;
   RangeValues _filtrePreu = const RangeValues(0, 100);
@@ -31,7 +28,7 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
     _carregarFestesGuardades();
   }
 
-  // 1. OBTENIR FESTES DE FIREBASE
+  // --- CARREGA DE DADES ---
   Future<void> _carregarFestes() async {
     try {
       final snapshot = await FirebaseFirestore.instance.collection('festes').get();
@@ -46,7 +43,6 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
     }
   }
 
-  // 2. OBTENIR LES FESTES JA GUARDADES PER L'USUARI
   Future<void> _carregarFestesGuardades() async {
     if (widget.usuariActual == null) return;
     try {
@@ -64,75 +60,27 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
     }
   }
 
-  // 3. FUNCIÓ PER GUARDAR / ELIMINAR DE L'AGENDA
-  Future<void> _toggleGuardarFesta(Map<String, dynamic> festa) async {
-    if (widget.usuariActual == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes iniciar sesión para guardar eventos.'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    final String festaId = festa['id'];
-    final docRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(widget.usuariActual!.userId)
-        .collection('agenda')
-        .doc(festaId);
-
-    setState(() {
-      if (_festesGuardades.contains(festaId)) {
-        _festesGuardades.remove(festaId);
-        docRef.delete(); // Esborrem de Firebase
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Evento eliminado de tu agenda.')),
-        );
-      } else {
-        _festesGuardades.add(festaId);
-        // Guardem a Firebase per sortir a l'Agenda
-        docRef.set({
-          'festaId': festaId,
-          'nom': festa['nom'] ?? 'Sense nom',
-          'data': festa['data'],
-          'guardatEl': FieldValue.serverTimestamp(),
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('¡Evento guardado en tu agenda!', style: TextStyle(color: Colors.white)), backgroundColor: Colors.green),
-        );
-      }
-    });
-  }
-
-  // 4. LÒGICA DE FILTRAT
+  // --- LÒGICA DE FILTRAT ---
   void _aplicarFiltres() {
     setState(() {
       _festesFiltrades = _totesLesFestes.where((festa) {
-        // Filtre per text (Buscador)
+        // Cercador per text
         final nom = (festa['nom'] ?? festa['name'] ?? '').toString().toLowerCase();
         final artista = (festa['artista'] ?? '').toString().toLowerCase();
         final cercaValida = _searchText.isEmpty || nom.contains(_searchText) || artista.contains(_searchText);
 
         // Filtre per Data
         bool dataValida = true;
-        final dataFirebase = festa['fecha_evento'] ?? festa['fechaEvento'] ?? festa['data'] ?? festa['date'];
-
-
+        final dataFirebase = festa['fecha_evento'] ?? festa['fechaEvento'];
         if (_filtreData != null && dataFirebase != null) {
-          DateTime dataFesta;
-          if (dataFirebase is Timestamp) {
-            dataFesta = dataFirebase.toDate();
-          } else {
-            dataFesta = DateTime.parse(dataFirebase.toString());
-          }
-          dataValida = dataFesta.year == _filtreData!.year &&
-              dataFesta.month == _filtreData!.month &&
-              dataFesta.day == _filtreData!.day;
+          DateTime dataFesta = (dataFirebase is Timestamp) ? dataFirebase.toDate() : DateTime.parse(dataFirebase.toString());
+          dataValida = dataFesta.year == _filtreData!.year && dataFesta.month == _filtreData!.month && dataFesta.day == _filtreData!.day;
         }
 
         // Filtre per Preu
         bool preuValid = true;
         if (_haFiltratPreu) {
-          final preu = (festa['preu'] ?? festa['price'] ?? 0).toDouble();
+          final preu = (festa['precio'] ?? festa['preu'] ?? 0).toDouble();
           preuValid = preu >= _filtrePreu.start && preu <= _filtrePreu.end;
         }
 
@@ -141,391 +89,211 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
     });
   }
 
-  // POP-UPS DE FILTRES
+  // --- DIÀLEGS DE FILTRE ---
   Future<void> _mostrarFiltreData() async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? p = await showDatePicker(
       context: context,
-      initialDate: _filtreData ?? DateTime.now(),
+      initialDate: DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime(2101),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFFE94E77), // Color Rosa
-              onPrimary: Colors.white,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      lastDate: DateTime(2030),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: Color(0xFFE94E77))),
+        child: child!,
+      ),
     );
-    if (picked != null) {
-      setState(() => _filtreData = picked);
-      _aplicarFiltres();
-    }
+    if (p != null) { setState(() => _filtreData = p); _aplicarFiltres(); }
   }
 
   Future<void> _mostrarFiltrePreu() async {
     RangeValues tempRange = _filtrePreu;
     await showDialog(
-        context: context,
-        builder: (context) {
-          return StatefulBuilder(
-              builder: (context, setStateDialog) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  title: const Text("Rango de Precio (€)", style: TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
-                  content: SizedBox(
-                    height: 100,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("${tempRange.start.round()}€  -  ${tempRange.end.round()}€", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        RangeSlider(
-                          values: tempRange,
-                          min: 0,
-                          max: 150,
-                          divisions: 30,
-                          activeColor: const Color(0xFFE94E77),
-                          inactiveColor: const Color(0xFFF1B1CB),
-                          onChanged: (RangeValues values) {
-                            setStateDialog(() => tempRange = values);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _haFiltratPreu = false;
-                          _filtrePreu = const RangeValues(0, 100);
-                          _aplicarFiltres();
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Borrar", style: TextStyle(color: Colors.grey)),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD988B9)),
-                      onPressed: () {
-                        setState(() {
-                          _haFiltratPreu = true;
-                          _filtrePreu = tempRange;
-                          _aplicarFiltres();
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Aplicar", style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                );
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text("Rango de Precio (€)", style: TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("${tempRange.start.round()}€ - ${tempRange.end.round()}€", style: const TextStyle(fontWeight: FontWeight.bold)),
+              RangeSlider(
+                values: tempRange,
+                min: 0, max: 150, divisions: 30,
+                activeColor: const Color(0xFFE94E77),
+                onChanged: (values) => setStateDialog(() => tempRange = values),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () {
+              setState(() { _haFiltratPreu = false; _filtrePreu = const RangeValues(0, 100); _aplicarFiltres(); });
+              Navigator.pop(context);
+            }, child: const Text("Borrar", style: TextStyle(color: Colors.grey))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD988B9)),
+              onPressed: () {
+                setState(() { _haFiltratPreu = true; _filtrePreu = tempRange; _aplicarFiltres(); });
+                Navigator.pop(context);
               },
-          );
-        },
+              child: const Text("Aplicar", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  // --- POP-UP DETALLS ---
+  void _mostrarDetallsFesta(Map<String, dynamic> festa) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(festa['nom'] ?? 'Detalles', style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _itemPopUp(Icons.calendar_today, "Fecha", _formatarData(festa['fecha_evento'])),
+              _itemPopUp(Icons.access_time, "Horario", "${festa['hora_inicio'] ?? '--'} - ${festa['hora_fin'] ?? '--'}"),
+              _itemPopUp(Icons.location_on, "Ubicación", festa['localizacion'] ?? 'No disponible'),
+              _itemPopUp(Icons.euro, "Precio", "${festa['precio'] ?? 0} €"),
+              _itemPopUp(Icons.person, "Artista", festa['artista'] ?? 'No especificado'),
+              _itemPopUp(Icons.music_note, "Estilos", (festa['tipoFesta'] is List) ? (festa['tipoFesta'] as List).join(", ") : 'Varios'),
+              _itemPopUp(Icons.vpn_key, "Código", "${festa['codiAcces'] ?? 'Privado'}"),
+            ],
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cerrar"))],
+      ),
+    );
+  }
+
+  Widget _itemPopUp(IconData icon, String t, String v) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(children: [
+      Icon(icon, size: 20, color: const Color(0xFFE94E77)),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(t, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+        Text(v, style: const TextStyle(fontSize: 14)),
+      ])),
+    ]),
+  );
+
+  String _formatarData(dynamic data) {
+    if (data == null) return 'Sin fecha';
+    DateTime dt = (data is Timestamp) ? data.toDate() : DateTime.parse(data.toString());
+    return "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}";
+  }
+
+  Future<void> _toggleGuardarFesta(Map<String, dynamic> festa) async {
+    if (widget.usuariActual == null) return;
+    final String id = festa['id'];
+    final docRef = FirebaseFirestore.instance.collection('users').doc(widget.usuariActual!.userId).collection('agenda').doc(id);
+    setState(() {
+      if (_festesGuardades.contains(id)) { _festesGuardades.remove(id); docRef.delete(); }
+      else { _festesGuardades.add(id); docRef.set({'festaId': id, 'nom': festa['nom'], 'data': festa['fecha_evento']}); }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/Background_App.png'),
-                fit: BoxFit.cover,
+      body: Container(
+        decoration: const BoxDecoration(image: DecorationImage(image: AssetImage('assets/Background_App.png'), fit: BoxFit.cover)),
+        child: SafeArea(
+          child: Column(children: [
+            _buildHeader(),
+            _buildSearchBar(),
+            const SizedBox(height: 15),
+            _buildFilterCarousel(),
+            Expanded(
+              child: _festesFiltrades.isEmpty
+                  ? const Center(child: Text("No hay fiestas disponibles", style: TextStyle(color: Colors.white)))
+                  : ListView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: _festesFiltrades.length,
+                itemBuilder: (context, index) => _buildEventCard(_festesFiltrades[index]),
               ),
             ),
-            child: SafeArea(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                  _buildHeader(),
-              _buildSearchBar(),
-              const SizedBox(height: 15),
-
-              // Carrusel de filtres
-              _buildFilterCarousel(),
-
-              Expanded(
-                child: _totesLesFestes.isEmpty
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFE94E77)))
-                    : _festesFiltrades.isEmpty
-                    ? const Center(child: Text("No se han encontrado fiestas.", style: TextStyle(color: Colors.white, fontSize: 16)))
-                    : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                  itemCount: _festesFiltrades.length,
-                  itemBuilder: (context, index) {
-                    return _buildEventCard(_festesFiltrades[index]);
-                  },
-                ),
-              ),
-
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.only(bottom: 10),
-                        child: Text("©2026 FlowVenue by Oriol&Jan", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                      ),
-                    )
-                  ],
-              ),
-            ),
+          ]),
         ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          CircleAvatar(
-            backgroundColor: Colors.white,
-            radius: 20,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-          Image.asset('assets/Logo_FlowVenue.png', height: 60, fit: BoxFit.contain),
-          CircleAvatar(
-            backgroundColor: Colors.white,
-            radius: 20,
-            child: IconButton(
-              icon: const Icon(Icons.calendar_month, color: Colors.black, size: 20),
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const AgendaView()));
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30)),
-        child: TextField(
-          style: const TextStyle(color: Colors.black87),
-          onChanged: (value) {
-            _searchText = value.toLowerCase();
-            _aplicarFiltres();
-          },
-          decoration: const InputDecoration(
-            hintText: "Busca un evento o artista",
-            hintStyle: TextStyle(color: Color(0xFFE94E77)),
-            prefixIcon: Icon(Icons.search, color: Color(0xFFE94E77)),
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(vertical: 15),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterCarousel() {
-
-    return SizedBox(
-      height: 35,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(left: 20),
-        children: [
-          _buildFilterButton(
-            text: _filtreData != null ? "${_filtreData!.day}/${_filtreData!.month}" : "Fecha",
-            icon: Icons.calendar_today,
-            isActive: _filtreData != null,
-            onPressed: _mostrarFiltreData,
-          ),
-          _buildFilterButton(
-            text: _haFiltratPreu ? "${_filtrePreu.start.round()}-${_filtrePreu.end.round()}€" : "Precio",
-            icon: Icons.attach_money,
-            isActive: _haFiltratPreu,
-            onPressed: _mostrarFiltrePreu,
-          ),
-          // El de localització es queda visual per disseny, pots fer-lo funcional més endavant
-          _buildFilterButton(
-            text: "Cerca de Mi",
-            icon: Icons.location_on,
-            isActive: false,
-            onPressed: () {},
-          ),
-          if (_filtreData != null || _haFiltratPreu)
-            Padding(
-              padding: const EdgeInsets.only(left: 5),
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () {
-                  setState(() {
-                    _filtreData = null;
-                    _haFiltratPreu = false;
-                    _aplicarFiltres();
-                  });
-                },
-              ),
-            )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterButton({required String text, required IconData icon, required bool isActive, required VoidCallback onPressed}) {
-    return Container(
-      margin: const EdgeInsets.only(right: 10),
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isActive ? const Color(0xFFD988B9) : const Color(0xFFF1B1CB),
-          foregroundColor: isActive ? Colors.white : const Color(0xFFE94E77),
-          elevation: 0,
-          shape: const StadiumBorder(),
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-        ),
-        icon: Icon(icon, size: 16),
-        label: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-        onPressed: onPressed,
       ),
     );
   }
 
   Widget _buildEventCard(Map<String, dynamic> festa) {
-
-
-    print("🔍 DADES REBUDES DE FIREBASE: $festa");
-
-
-    final String id = festa['id'];
-    final String nom = festa['nom'] ?? festa['name'] ?? 'Sense Nom';
-    final String lloc = festa['localizacion'] ?? festa['lloc'] ?? festa['location'] ?? festa['ubicacion'] ?? 'Sense lloc';
-    final dataFirebase = festa['fecha_evento'] ?? festa['fechaEvento'] ?? festa['fecha'] ?? festa['data'] ?? festa['date'];
-    final String imatgeUrl = festa['imatge'] ?? festa['imageUrl'] ?? '';
-
-    final rawPreu = festa['precio'] ?? festa['preu'];
-    final double preu = rawPreu != null ? double.tryParse(rawPreu.toString()) ?? 0.0 : 0.0;
-
-    // Transformació de la Data per tenir Dia i Hora
-    String dataFormatada = 'Sense data';
-    String horaFormatada = '';
-
-
-
-    if (dataFirebase != null) {
-      try {
-        DateTime dataFesta;
-        if (dataFirebase is Timestamp) {
-          dataFesta = dataFirebase.toDate();
-        } else {
-          dataFesta = DateTime.parse(dataFirebase.toString());
-        }
-        dataFormatada = "${dataFesta.day.toString().padLeft(2, '0')}/${dataFesta.month.toString().padLeft(2, '0')}/${dataFesta.year}";
-        horaFormatada = "${dataFesta.hour.toString().padLeft(2, '0')}:${dataFesta.minute.toString().padLeft(2, '0')}";
-      } catch (e) {
-        dataFormatada = dataFirebase.toString(); // Si ve com un text pla en comptes de Timestamp
-      }
-    }
-
-    final bool estaGuardada = _festesGuardades.contains(id);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Row(
-        children: [
-        // Imatge
-      ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: imatgeUrl.isNotEmpty
-          ? Image.network(
-        imatgeUrl,
-        width: 65,
-        height: 65,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          // Si la URL falla o la imatge no existeix, mostrem un error visual suau
-          return Container(
-            width: 65,
-            height: 65,
-            color: Colors.grey[200],
-            child: const Icon(Icons.broken_image, color: Colors.grey),
-          );
-        },
-      )
-          : Container(
-        // Si el camp imatge està buit, mostrem la nota musical
-        width: 65,
-        height: 65,
-        color: Colors.grey[200],
-        child: const Icon(Icons.music_note, color: Color(0xFFE94E77), size: 30),
-      ),
-      ),
-
-          const SizedBox(width: 15),
-          // Informació
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  nom,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today, size: 12, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text("$dataFormatada  $horaFormatada", style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(lloc, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                    Text(
-                      preu == 0 ? "GRATIS" : "${preu.toStringAsFixed(2)}€",
-                      style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          // Botó Guardar
+    final bool estaGuardada = _festesGuardades.contains(festa['id']);
+    return GestureDetector(
+      onTap: () => _mostrarDetallsFesta(festa),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))]
+        ),
+        child: Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(festa['nom'] ?? 'Evento', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            const SizedBox(height: 5),
+            Row(children: [
+              const Icon(Icons.calendar_today, size: 12, color: Color(0xFFE94E77)),
+              const SizedBox(width: 5),
+              Text("${_formatarData(festa['fecha_evento'])}  •  ${festa['hora_inicio'] ?? '00:00'}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            ]),
+            Text(festa['localizacion'] ?? 'Sin ubicación', style: const TextStyle(color: Colors.black54, fontSize: 12)),
+          ])),
+          Text("${festa['precio'] ?? 0}€", style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
           IconButton(
-            icon: Icon(
-              estaGuardada ? Icons.bookmark : Icons.bookmark_border,
-              color: estaGuardada ? Colors.black : Colors.black54,
-              size: 28,
-            ),
+            icon: Icon(estaGuardada ? Icons.bookmark : Icons.bookmark_border, color: estaGuardada ? Colors.black : Colors.grey),
             onPressed: () => _toggleGuardarFesta(festa),
-          ),
-        ],
+          )
+        ]),
       ),
     );
   }
+
+  Widget _buildHeader() => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+      Image.asset('assets/Logo_FlowVenue.png', height: 50),
+      IconButton(icon: const Icon(Icons.calendar_month, color: Colors.white), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgendaView()))),
+    ]),
+  );
+
+  Widget _buildSearchBar() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    child: TextField(
+      onChanged: (v) { _searchText = v.toLowerCase(); _aplicarFiltres(); },
+      decoration: InputDecoration(
+        hintText: "Busca evento o artista",
+        filled: true, fillColor: Colors.white,
+        prefixIcon: const Icon(Icons.search, color: Color(0xFFE94E77)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+      ),
+    ),
+  );
+
+  Widget _buildFilterCarousel() => SizedBox(
+    height: 40,
+    child: ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.only(left: 20),
+      children: [
+        _fBtn(_filtreData != null ? "${_filtreData!.day}/${_filtreData!.month}" : "Fecha", Icons.event, _filtreData != null, _mostrarFiltreData),
+        _fBtn(_haFiltratPreu ? "${_filtrePreu.start.round()}-${_filtrePreu.end.round()}€" : "Precio", Icons.euro, _haFiltratPreu, _mostrarFiltrePreu),
+      ],
+    ),
+  );
+
+  Widget _fBtn(String t, IconData i, bool a, VoidCallback o) => Container(
+    margin: const EdgeInsets.only(right: 10),
+    child: ElevatedButton.icon(
+      onPressed: o, icon: Icon(i, size: 16), label: Text(t),
+      style: ElevatedButton.styleFrom(backgroundColor: a ? const Color(0xFFD988B9) : Colors.white70, foregroundColor: a ? Colors.white : Colors.black87),
+    ),
+  );
 }
-
-
-

@@ -1,11 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flowvenue/view/buscar_artista_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart';
 
 class CrearEventView extends StatefulWidget {
   const CrearEventView({super.key});
@@ -21,7 +17,6 @@ class _CrearEventViewState extends State<CrearEventView> {
   final TextEditingController _horaInicioController = TextEditingController();
   final TextEditingController _horaFinController = TextEditingController();
   final TextEditingController _localizacionController = TextEditingController();
-  final TextEditingController _urlController = TextEditingController();
   final TextEditingController _estilosController = TextEditingController();
   final TextEditingController _precioController = TextEditingController();
   final TextEditingController _artistasController = TextEditingController();
@@ -29,7 +24,6 @@ class _CrearEventViewState extends State<CrearEventView> {
 
   final List<String> _opcionesEstilos = ["Reggaeton", "Techno", "Trap", "Pop", "Rock", "House", "Indie", "Salsa", "Bachata"];
   List<String> _estilosSeleccionados = [];
-  Uint8List? _imatgeBytes;
 
   @override
   void dispose() {
@@ -38,23 +32,11 @@ class _CrearEventViewState extends State<CrearEventView> {
     _horaInicioController.dispose();
     _horaFinController.dispose();
     _localizacionController.dispose();
-    _urlController.dispose();
     _estilosController.dispose();
     _precioController.dispose();
     _artistasController.dispose();
     _codigoController.dispose();
     super.dispose();
-  }
-
-  // --- SELECCIÓ D'IMATGE ---
-  Future<void> _seleccionarImatge() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? imatge = await picker.pickImage(source: ImageSource.gallery);
-
-    if (imatge != null) {
-      final bytes = await imatge.readAsBytes();
-      setState(() => _imatgeBytes = bytes);
-    }
   }
 
   // --- SELECTORS DE DATA I HORA ---
@@ -86,14 +68,13 @@ class _CrearEventViewState extends State<CrearEventView> {
     if (t != null) setState(() => _horaFinController.text = t.format(context));
   }
 
-  // --- LÒGICA DE FIREBASE (Anti-bloqueig) ---
+  // --- LÒGICA DE FIREBASE (NOMÉS FIRESTORE) ---
   Future<void> _crearEventoFirebase() async {
-    if (_nombreController.text.isEmpty || _fechaController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor, rellena nombre y fecha')));
+    if (_nombreController.text.isEmpty || _fechaController.text.isEmpty || _codigoController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor, rellena nombre, fecha y código')));
       return;
     }
 
-    // Obrim el diàleg de càrrega
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -101,29 +82,15 @@ class _CrearEventViewState extends State<CrearEventView> {
     );
 
     try {
-      String urlDescarrega = '';
-
-      // 1. Intentar pujar imatge (si n'hi ha)
-      if (_imatgeBytes != null) {
-        try {
-          String idImatge = DateTime.now().millisecondsSinceEpoch.toString();
-          Reference ref = FirebaseStorage.instance.ref().child('festes_images/$idImatge.jpg');
-          await ref.putData(_imatgeBytes!);
-          urlDescarrega = await ref.getDownloadURL();
-        } catch (e) {
-          print("Error en Storage: $e");
-          // Si falla la imatge, no tallem l'execució, simplement l'event es crea sense foto
-        }
-      }
-
-      // 2. Format de la data segur
+      // Format de la data
       List<String> dateParts = _fechaController.text.split('/');
       DateTime fechaFesta = DateTime.now();
       if (dateParts.length == 3) {
         fechaFesta = DateTime(int.parse(dateParts[2]), int.parse(dateParts[1]), int.parse(dateParts[0]));
       }
 
-      // 3. Enviament a Firestore
+      int codi = int.tryParse(_codigoController.text) ?? 0;
+
       Map<String, dynamic> dades = {
         'nom': _nombreController.text,
         'name': _nombreController.text,
@@ -132,9 +99,9 @@ class _CrearEventViewState extends State<CrearEventView> {
         'hora_fin': _horaFinController.text,
         'localizacion': _localizacionController.text,
         'precio': double.tryParse(_precioController.text) ?? 0.0,
-        'imatge': urlDescarrega,
-        'codi_acces': int.tryParse(_codigoController.text) ?? 0,
-        'codiAcces': int.tryParse(_codigoController.text) ?? 0,
+        'imatge': '', // Guardem buit ja que no hi ha foto
+        'codi_acces': codi,
+        'codiAcces': codi,
         'artista': _artistasController.text,
         'tipoFesta': _estilosSeleccionados,
         'actividad': true,
@@ -144,7 +111,6 @@ class _CrearEventViewState extends State<CrearEventView> {
 
       await FirebaseFirestore.instance.collection('festes').add(dades);
 
-      // Si tot va bé, tanquem loading i tornem enrere
       if (mounted) {
         Navigator.pop(context); // Tanca loading
         Navigator.pop(context); // Torna a la llista
@@ -153,16 +119,13 @@ class _CrearEventViewState extends State<CrearEventView> {
         );
       }
     } catch (e) {
-      // Si hi ha un error crític, tanquem el loading i avisem
       if (mounted) Navigator.pop(context);
-      print("ERROR CRÍTIC: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al crear evento: $e'), backgroundColor: Colors.red),
       );
     }
   }
 
-  // --- UI COMPONENTS ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -178,8 +141,10 @@ class _CrearEventViewState extends State<CrearEventView> {
               children: [
                 const SizedBox(height: 10),
                 _buildHeader(),
-                const SizedBox(height: 20),
-                _buildImagePicker(),
+                const SizedBox(height: 30),
+
+                // Títol de la secció
+                const Text("Nuevo Evento", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 30),
 
                 _buildTextField("Nombre del Evento", _nombreController),
@@ -231,8 +196,6 @@ class _CrearEventViewState extends State<CrearEventView> {
 
   // --- HELPERS ---
   Widget _buildHeader() => Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)), Image.asset('assets/Logo_FlowVenue.png', height: 40), const SizedBox(width: 40)]);
-
-  Widget _buildImagePicker() => GestureDetector(onTap: _seleccionarImatge, child: CircleAvatar(radius: 60, backgroundColor: Colors.white, backgroundImage: _imatgeBytes != null ? MemoryImage(_imatgeBytes!) : null, child: _imatgeBytes == null ? const Icon(Icons.camera_alt, size: 40, color: Colors.black) : null));
 
   Widget _buildTextField(String label, TextEditingController ctrl, {TextInputType keyboardType = TextInputType.text}) => _baseField(label, TextField(controller: ctrl, keyboardType: keyboardType, style: const TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold), decoration: _inputDeco()));
 
