@@ -10,28 +10,27 @@ import 'package:flowvenue/model/users_model.dart';
 class introduirCodi extends StatefulWidget {
   const introduirCodi({super.key});
 
-
-
   @override
   State<introduirCodi> createState() => _IntroduirCodiState();
 }
 
 class _IntroduirCodiState extends State<introduirCodi> {
   final TextEditingController codiController = TextEditingController();
-  // VARIABLE D'ESTAT PER GUARDAR LA SESSIÓ OBERTA
   Usuari? _currentUser;
 
-
-  @override
-  void initState() {
-    super.initState();
-  }
   @override
   void dispose() {
     codiController.dispose();
     super.dispose();
   }
 
+  // Funció per netejar l'estat en tornar
+  void _resetScreen() {
+    setState(() {
+      codiController.clear();
+    });
+    FocusScope.of(context).unfocus(); // Treu el focus del teclat
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,159 +38,82 @@ class _IntroduirCodiState extends State<introduirCodi> {
       body: Stack(
         children: [
           Positioned.fill(
-            // Emplenar amb l'imatge tot el fons
             child: Image.asset(
               'assets/Background_App.png',
               fit: BoxFit.cover,
             ),
           ),
+          
+          // --- BOTÓ PERFIL ---
           Positioned(
             top: 50,
             left: 20,
             child: PopupMenuButton<String>(
-              offset: const Offset(0, 50), // Que s'obri per sota del botó
+              offset: const Offset(0, 50),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               onSelected: (value) async {
                 if (value == 'login') {
-                  // Obre el LoginView sense passar-li cap festa (mode inici de sessió general)
                   final Usuari? usuariLoguejat = await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const LoginView()),
                   );
-
-                  // Si el login ha anat bé, guardem la sessió i actualitzem la vista
                   if (usuariLoguejat != null) {
-                    setState(() {
-                      _currentUser = usuariLoguejat;
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('¡Bienvenido, ${_currentUser!.username}!'), backgroundColor: Colors.green),
-                    );
+                    setState(() => _currentUser = usuariLoguejat);
                   }
                 } else if (value == 'config') {
-                  // Entrar a la configuració i ESPERAR si l'usuari retorna actualitzat
                   final Usuari? usuariActualitzat = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => PerfilConfigView(usuariActual: _currentUser!),
                     ),
                   );
-
-                  // Si hem tornat enrere i hi ha hagut algun canvi, actualitzem la sessió
                   if (usuariActualitzat != null) {
-                    setState(() {
-                      _currentUser = usuariActualitzat;
-                    });
+                    setState(() => _currentUser = usuariActualitzat);
                   }
                 } else if (value == 'logout') {
-                  // --- AQUESTA PART FALTAVA ---
-                  // Tancar la sessió
-                  setState(() {
-                    _currentUser = null;
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sesión cerrada correctamente')),
-                  );
+                  setState(() => _currentUser = null);
                 }
               },
-
-              // OPCIONS DEL MENÚ SEGONS SI HI HA SESSIÓ O NO
               itemBuilder: (BuildContext context) {
                 if (_currentUser == null) {
                   return [
                     const PopupMenuItem(
                       value: 'login',
-                      child: Row(
-                        children: [
-                          Icon(Icons.login, color: Colors.black),
-                          SizedBox(width: 10),
-                          Text('Registrarse / Iniciar sesión'),
-                        ],
-                      ),
+                      child: Row(children: [Icon(Icons.login), SizedBox(width: 10), Text('Entrar')]),
                     ),
                   ];
                 } else {
                   return [
                     const PopupMenuItem(
                       value: 'config',
-                      child: Row(
-                        children: [
-                          Icon(Icons.settings, color: Colors.black),
-                          SizedBox(width: 10),
-                          Text('Configuración'),
-                        ],
-                      ),
+                      child: Row(children: [Icon(Icons.settings), SizedBox(width: 10), Text('Ajustes')]),
                     ),
                     const PopupMenuItem(
                       value: 'logout',
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout, color: Colors.red),
-                          SizedBox(width: 10),
-                          Text('Cerrar sesión', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
+                      child: Row(children: [Icon(Icons.logout, color: Colors.red), SizedBox(width: 10), Text('Salir')]),
                     ),
                   ];
                 }
               },
-              // L'ASPECTE VISUAL DEL BOTÓ
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    )
-                  ],
-                ),
-                child: Icon(
-                  Icons.person,
-                  // Pintem la icona diferent si estem loguejats
-                  color: _currentUser != null ? const Color(0xFFE94E77) : Colors.black,
-                  size: 24,
-                ),
+              child: _buildCircleIconButton(
+                icon: Icons.person,
+                color: _currentUser != null ? const Color(0xFFE94E77) : Colors.black,
               ),
             ),
           ),
 
+          // --- BOTÓ BUSCADOR ---
           Positioned(
             top: 50,
             right: 20,
             child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => buscador_festa_view(usuariActual: _currentUser)),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    )
-                  ],
-                ),
-                child: const Icon(
-                  Icons.search,
-                  color: Colors.black, // Icono de lupa negra
-                  size: 24,
-                ),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => buscador_festa_view(usuariActual: _currentUser)),
               ),
+              child: _buildCircleIconButton(icon: Icons.search),
             ),
           ),
-
-
 
           SafeArea(
             child: Center(
@@ -199,62 +121,42 @@ class _IntroduirCodiState extends State<introduirCodi> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-
-                    // Logotip
-                    Image.asset(
-                      'assets/Logo_FlowVenue.png',
-                      height: 350,
-                      width: 350,
-                    ),
-
-                    Text('Introduce el Código:',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        )
-                    ),
-
+                    Image.asset('assets/Logo_FlowVenue.png', height: 350, width: 350),
+                    const Text('Introduce el Código:', style: TextStyle(color: Colors.white, fontSize: 16)),
                     const SizedBox(height: 15),
 
-                    // Input Codi
                     Pinput(
                       length: 5,
                       controller: codiController,
                       defaultPinTheme: PinTheme(
-                        width: 50,
-                        height: 50,
-                        textStyle: const TextStyle(
-                          fontSize: 26,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(width: 2, color: Colors.white),
-                          ),
-                        ),
+                        width: 50, height: 50,
+                        textStyle: const TextStyle(fontSize: 26, color: Colors.white, fontWeight: FontWeight.bold),
+                        decoration: const BoxDecoration(border: Border(bottom: BorderSide(width: 2, color: Colors.white))),
                       ),
                       onCompleted: (pin) async {
+                        // 1. Tanquem teclat abans de res
+                        FocusScope.of(context).unfocus();
+
                         final festa = await DbServices().getFestaByAccessCode(int.parse(pin));
 
                         if (festa != null) {
-                          // Si l'usuari JA està loguejat, anem directes a la festa (aquí sí que volem pushReplacement)
-                          final Usuari? usuariActual = _currentUser; // usuari, problemes amb el ? passar parametre
-                          if (usuariActual != null) {
-                            Navigator.pushReplacement(
+                          if (_currentUser != null) {
+                            // Si anem a la festa, fem push i netegem en tornar
+                            Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => partyFeed_view(idFesta: festa.partyId, usuari: usuariActual)),
-                            );
+                              MaterialPageRoute(builder: (context) => partyFeed_view(idFesta: festa.partyId, usuari: _currentUser!)),
+                            ).then((_) => _resetScreen()); 
                           } else {
-                            // AQUÍ ESTÀ LA CLAU: Fem servir només "push" perquè pugui tirar enrere!
+                            // Si anem al login, el mateix
                             Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => LoginView(festa: festa)),
-                            );
+                            ).then((_) => _resetScreen());
                           }
                         } else {
+                          codiController.clear(); // Codi erroni, netegem
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Codi invàlid o festa inactiva!')),
+                            const SnackBar(content: Text('Código inválido')),
                           );
                         }
                       },
@@ -267,6 +169,19 @@ class _IntroduirCodiState extends State<introduirCodi> {
           ),
         ],
       ),
+    );
+  }
+
+  // Widget auxiliar per no repetir codi dels botons rodons
+  Widget _buildCircleIconButton({required IconData icon, Color color = Colors.black}) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        shape: BoxShape.circle,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+      ),
+      child: Icon(icon, color: color, size: 24),
     );
   }
 }
