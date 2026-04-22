@@ -103,10 +103,10 @@ class _CreatePostViewState extends State<CreatePostView> {
                                         child: TextField(
                                             controller: _textController,
                                             maxLines: 10,
-                                            style: const TextStyle(color: Colors.white),
+                                            style: const TextStyle(color: Colors.black),
                                             decoration: InputDecoration(
                                                 hintText: widget.isReply ? "Escriu una resposta..." : "Que passa?",
-                                                hintStyle: const TextStyle(color: Colors.white54),
+                                                hintStyle: const TextStyle(color: Colors.black54),
                                                 border: InputBorder.none,
                                             ),
                                         ),
