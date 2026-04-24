@@ -51,6 +51,7 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
 
   Future<void> _guardarPromocio() async {
     if (_nombreController.text.isEmpty) return;
+
     Map<String, dynamic> agendaMap = {};
     _eventsPerDia.forEach((key, value) => agendaMap[key.toIso8601String()] = value);
 
@@ -64,6 +65,7 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
     };
 
     try {
+      // 1. Guardem a la col·lecció general de 'festes' (públic)
       if (_documentIdExistent != null) {
         await FirebaseFirestore.instance.collection('festes').doc(_documentIdExistent).update(dades);
       } else {
@@ -73,8 +75,40 @@ class _PromocionarmeViewState extends State<PromocionarmeView> {
         dades['precio'] = 0.0;
         await FirebaseFirestore.instance.collection('festes').add(dades);
       }
+
+      // 2. IMPLEMENTACIÓ A L'AGENDA PERSONAL (El que m'has demanat)
+      // Recorrem tots els dies que l'artista ha marcat a la seva agenda
+      for (var entry in _eventsPerDia.entries) {
+        DateTime dia = entry.key;
+        List eventsDelDia = entry.value;
+
+        for (var ev in eventsDelDia) {
+          // Creem un ID únic per a cada esdeveniment per evitar duplicats si tornen a desar
+          String eventId = "PROMO_${dia.millisecondsSinceEpoch}_${ev['nombre']}";
+
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(widget.nomArtistaSpotify) // Aquí usem el nom de l'artista com a ID de l'usuari
+              .collection('agenda')
+              .doc(eventId)
+              .set({
+            'titol': "Promoción: ${ev['nombre']}",
+            'data': Timestamp.fromDate(dia),
+            'tipus': "Promoción Artista",
+            'hora': ev['hora'] ?? "22:00",
+          });
+        }
+      }
+
+      if (!mounted) return;
       Navigator.pop(context);
-    } catch (e) { print("Error al guardar: $e"); }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("¡Perfil y Agenda actualizados!")),
+      );
+
+    } catch (e) {
+      print("Error al guardar: $e");
+    }
   }
 
   void _mostrarPopUpAgenda(DateTime dia) {

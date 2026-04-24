@@ -180,11 +180,17 @@ class _PerfilConfigViewState extends State<PerfilConfigView> {
   Widget _buildAgendaButton() {
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white, foregroundColor: Colors.black,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
       ),
-      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgendaView())),
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AgendaView(usuariActual: _usuariLocal),
+        ),
+      ),
       icon: const Icon(Icons.calendar_month, color: Color(0xFFE94E77)),
       label: const Text("VER MI AGENDA", style: TextStyle(fontWeight: FontWeight.bold)),
     );

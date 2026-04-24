@@ -1,137 +1,96 @@
 import 'package:flutter/material.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:table_calendar/table_calendar.dart'; // Utilitzem TableCalendar per la flexibilitat
+import '/services/db_services.dart';
+import '/model/users_model.dart';
 
 class AgendaView extends StatefulWidget {
-  const AgendaView({super.key});
+  final Usuari usuariActual;
+  const AgendaView({super.key, required this.usuariActual});
 
   @override
   State<AgendaView> createState() => _AgendaViewState();
 }
 
 class _AgendaViewState extends State<AgendaView> {
-  DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = TimeOfDay.now();
+  DateTime _focusedDay = DateTime.now();
+  DateTime _selectedDay = DateTime.now();
 
-  // Simulació de dades: Map on la clau és el dia (YYYY-MM-DD) i el valor una llista d'etiquetes
-  final Map<String, List<String>> _etiquetesPerDia = {
-    "2026-03-12": ["Mandanga Meme Party - 23:00", "Recollir entrades"],
-    "2026-03-15": ["Sopar FlowVenue", "Aniversari Jan"],
-    "2026-03-20": ["Concert Alvama Ice"],
-  };
+  // Guardarem els dies que tenen esdeveniments per pintar-los
+  Set<String> _diesAmbEsdeveniments = {};
 
-  // 1. POP-UP PER VEURE ETIQUETES EXISTENTS
+  @override
+  void initState() {
+    super.initState();
+    _escudarEsdeveniments();
+  }
+
+  // Escolta en temps real tots els esdeveniments de l'usuari per marcar el calendari
+  void _escudarEsdeveniments() {
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.usuariActual.userId)
+        .collection('agenda')
+        .snapshots()
+        .listen((snapshot) {
+      final tempDies = <String>{};
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['data'] != null) {
+          DateTime dt = (data['data'] as Timestamp).toDate();
+          // Guardem la data en format YYYY-MM-DD per comparar fàcilment
+          tempDies.add("${dt.year}-${dt.month}-${dt.day}");
+        }
+      }
+      setState(() {
+        _diesAmbEsdeveniments = tempDies;
+      });
+    });
+  }
+
   void _mostrarEtiquetesDelDia(DateTime date) {
-    String dateKey = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-    List<String> etiquetes = _etiquetesPerDia[dateKey] ?? [];
+    DateTime iniciDia = DateTime(date.year, date.month, date.day);
+    DateTime finalDia = iniciDia.add(const Duration(days: 1));
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              const Icon(Icons.event_note, color: Color(0xFFE94E77)),
-              const SizedBox(width: 10),
-              Text("Día ${date.day}/${date.month}",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: etiquetes.isEmpty
-                ? const Text("No hay etiquetas para este día.",
-                style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey))
-                : ListView.builder(
-              shrinkWrap: true,
-              itemCount: etiquetes.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  color: const Color(0xFFF1B1CB).withOpacity(0.3),
-                  elevation: 0,
-                  margin: const EdgeInsets.symmetric(vertical: 5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  child: ListTile(
-                    leading: const Icon(Icons.label, color: Color(0xFFE94E77), size: 20),
-                    title: Text(etiquetes[index], style: const TextStyle(fontSize: 14)),
-                  ),
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cerrar", style: TextStyle(color: Color(0xFFE94E77))),
-            ),
-          ],
-        );
-      },
-    );
-  }
+          title: Text("Día ${date.day}/${date.month}"),
+          content: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(widget.usuariActual.userId)
+                .collection('agenda')
+                .where('data', isGreaterThanOrEqualTo: iniciDia)
+                .where('data', isLessThan: finalDia)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              var docs = snapshot.data!.docs;
+              if (docs.isEmpty) return const Text("No hay eventos.");
 
-  // 2. POP-UP PER AFEGIR UNA NOVA ETIQUETA
-  Future<void> _showAddLabelDialog() async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Añadir Etiqueta',
-              style: TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                const Text('Selecciona el momento para tu etiqueta:'),
-                const SizedBox(height: 20),
-                // Seleccionar Dia
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.calendar_today),
-                  label: const Text("Seleccionar Día"),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF1B1CB), foregroundColor: Colors.black),
-                  onPressed: () async {
-                    final DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2101),
+              return SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    var data = docs[index].data() as Map<String, dynamic>;
+                    return Card(
+                      color: const Color(0xFFE94E77).withOpacity(0.1),
+                      child: ListTile(
+                        title: Text(data['titol'] ?? "Evento"),
+                        subtitle: Text(data['tipus'] ?? "General"),
+                      ),
                     );
-                    if (picked != null) setState(() => _selectedDate = picked);
                   },
                 ),
-                const SizedBox(height: 10),
-                // Seleccionar Hora
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.access_time),
-                  label: const Text("Seleccionar Hora"),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF1B1CB), foregroundColor: Colors.black),
-                  onPressed: () async {
-                    final TimeOfDay? picked = await showTimePicker(
-                      context: context,
-                      initialTime: _selectedTime,
-                    );
-                    if (picked != null) setState(() => _selectedTime = picked);
-                  },
-                ),
-              ],
-            ),
+              );
+            },
           ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: const Text('Guardar', style: TextStyle(color: Color(0xFFE94E77))),
-              onPressed: () {
-                // Aquí aniria la lògica per guardar l'etiqueta al Map o Firebase
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Etiqueta añadida correctamente'))
-                );
-              },
-            ),
-          ],
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cerrar"))],
         );
       },
     );
@@ -144,28 +103,14 @@ class _AgendaViewState extends State<AgendaView> {
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/Background_App.png'),
-            fit: BoxFit.cover,
-          ),
+          image: DecorationImage(image: AssetImage('assets/Background_App.png'), fit: BoxFit.cover),
         ),
         child: SafeArea(
           child: Column(
             children: [
               _buildHeader(),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  "Agenda de Eventos",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              const Text("Agenda de Eventos", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
 
-              // CALENDARI INTERACTIU
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.all(20),
@@ -174,40 +119,47 @@ class _AgendaViewState extends State<AgendaView> {
                     color: Colors.white.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(25),
                   ),
-                  child: CalendarDatePicker(
-                    initialDate: _selectedDate,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2101),
-                    onDateChanged: (date) {
-                      setState(() => _selectedDate = date);
-                      // Quan es clica un dia, mostrem les etiquetes d'aquell dia
-                      _mostrarEtiquetesDelDia(date);
+                  child: TableCalendar(
+                    firstDay: DateTime(2000),
+                    lastDay: DateTime(2101),
+                    focusedDay: _focusedDay,
+                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
+                      _mostrarEtiquetesDelDia(selectedDay);
                     },
+                    // LÒGICA PER PINTAR EL DIA DE ROSA SI HI HA EVENT
+                    calendarBuilders: CalendarBuilders(
+                      defaultBuilder: (context, day, focusedDay) {
+                        String key = "${day.year}-${day.month}-${day.day}";
+                        if (_diesAmbEsdeveniments.contains(key)) {
+                          return Container(
+                            margin: const EdgeInsets.all(4),
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF1B1CB), // Rosa suau per a dies amb event
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text("${day.day}"),
+                          );
+                        }
+                        return null;
+                      },
+                    ),
+                    headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true),
+                    calendarStyle: const CalendarStyle(
+                      todayDecoration: BoxDecoration(color: Colors.grey, shape: BoxShape.circle),
+                      selectedDecoration: BoxDecoration(color: Color(0xFFE94E77), shape: BoxShape.circle),
+                    ),
                   ),
                 ),
               ),
 
-              // BOTÓ AFEGIR ETIQUETA
-              Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: ElevatedButton.icon(
-                  onPressed: _showAddLabelDialog,
-                  icon: const Icon(Icons.add_circle_outline, color: Colors.white),
-                  label: const Text("Añadir Etiqueta",
-                      style: TextStyle(color: Colors.white, fontSize: 18)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD988B9),
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  ),
-                ),
-              ),
-
-              const Text(
-                "©2026 FlowVenue by Oriol&Jan",
-                style: TextStyle(color: Colors.white54, fontSize: 10),
-              ),
-              const SizedBox(height: 10),
+              _buildAddButton(),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -215,21 +167,59 @@ class _AgendaViewState extends State<AgendaView> {
     );
   }
 
+  Widget _buildAddButton() {
+    return ElevatedButton.icon(
+      onPressed: () => _showAddLabelDialog(),
+      icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+      label: const Text("Añadir Etiqueta", style: TextStyle(color: Colors.white, fontSize: 18)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFD988B9),
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      ),
+    );
+  }
+
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.all(20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          CircleAvatar(
-            backgroundColor: Colors.white,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
+          CircleAvatar(backgroundColor: Colors.white, child: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))),
           Image.asset('assets/Logo_FlowVenue.png', height: 50),
           const SizedBox(width: 40),
+        ],
+      ),
+    );
+  }
+
+  void _showAddLabelDialog() {
+    final TextEditingController _titolController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Nueva Etiqueta"),
+        content: TextField(controller: _titolController, decoration: const InputDecoration(hintText: "Nombre del evento")),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+          ElevatedButton(
+            onPressed: () async {
+              if (_titolController.text.isNotEmpty) {
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(widget.usuariActual.userId)
+                    .collection('agenda')
+                    .add({
+                  'titol': _titolController.text,
+                  'data': Timestamp.fromDate(_selectedDay),
+                  'tipus': "Manual",
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Guardar"),
+          )
         ],
       ),
     );

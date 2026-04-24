@@ -73,19 +73,39 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
 
   Future<void> _toggleGuardar(Map<String, dynamic> item) async {
     if (widget.usuariActual == null) return;
+
     final String id = item['id'].toString();
-    final docRef = FirebaseFirestore.instance.collection('users').doc(widget.usuariActual!.userId).collection('agenda').doc(id);
+    // Referència a la subcol·lecció 'agenda' de l'usuari
+    final docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.usuariActual!.userId)
+        .collection('agenda')
+        .doc(id);
 
     if (_festesGuardades.contains(id)) {
+      // Si ja existeix, la borrem (desmarcar)
       await docRef.delete();
       setState(() => _festesGuardades.remove(id));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Eliminado de la agenda")),
+      );
     } else {
+      // SI NO EXISTEIX, LA GUARDEM (Bonus aplicat aquí)
       await docRef.set({
         'festaId': id,
-        'nom': item['nom'],
-        'data': item['fecha_evento'] ?? DateTime.now().toIso8601String(),
+        'titol': item['nom'] ?? 'Evento sin nombre',
+        // Mantenim el format de data compatible amb el StreamBuilder de l'agenda
+        'data': item['fecha_evento'] ?? Timestamp.now(),
+        'tipus': item['tipus'] == 'artista' ? 'Concierto Artista' : 'Fiesta Guardada',
+        'creatEn': FieldValue.serverTimestamp(), // Opcional: per saber quan es va guardar
       });
+
       setState(() => _festesGuardades.add(id));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("¡Guardado en tu agenda!")),
+      );
     }
   }
 
@@ -205,7 +225,37 @@ class _BuscadorFestaViewState extends State<buscador_festa_view> {
     );
   }
 
-  Widget _buildHeader() => Padding(padding: const EdgeInsets.all(20), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)), Image.asset('assets/Logo_FlowVenue.png', height: 50), IconButton(icon: const Icon(Icons.calendar_month, color: Colors.white), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgendaView())))]));
+  Widget _buildHeader() => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        Image.asset('assets/Logo_FlowVenue.png', height: 50),
+        IconButton(
+          icon: const Icon(Icons.calendar_month, color: Colors.white),
+          onPressed: () {
+            if (widget.usuariActual != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AgendaView(usuariActual: widget.usuariActual!),
+                ),
+              );
+            } else {
+              // Opcional: Mostrar un avís si no hi ha usuari
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Inicia sesión para ver tu agenda")),
+              );
+            }
+          },
+        )
+      ],
+    ),
+  );
   Widget _buildSearchBar() => Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: TextField(onChanged: (v) { _searchText = v.toLowerCase(); _aplicarFiltres(); }, decoration: InputDecoration(hintText: "Busca evento o artista", filled: true, fillColor: Colors.white, prefixIcon: const Icon(Icons.search, color: Color(0xFFE94E77)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none))));
   Widget _buildFilterCarousel() => SizedBox(height: 40, child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.only(left: 20), children: [_fBtn(_filtreData != null ? "${_filtreData!.day}/${_filtreData!.month}" : "Fecha", Icons.event, _filtreData != null, () async { final p = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime(2030)); if (p != null) { setState(() => _filtreData = p); _aplicarFiltres(); } }), _fBtn(_haFiltratPreu ? "${_filtrePreu.start.round()}€" : "Precio", Icons.euro, _haFiltratPreu, () {})]));
   Widget _fBtn(String t, IconData i, bool a, VoidCallback o) => Container(margin: const EdgeInsets.only(right: 10), child: ElevatedButton.icon(onPressed: o, icon: Icon(i, size: 16), label: Text(t), style: ElevatedButton.styleFrom(backgroundColor: a ? const Color(0xFFD988B9) : Colors.white70, foregroundColor: a ? Colors.white : Colors.black)));
