@@ -146,6 +146,9 @@ class _AgendaViewState extends State<AgendaView> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+
+
+        
         title: Text("Día ${date.day}/${date.month}"),
         content: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('users').doc(widget.usuariActual.userId).collection('agenda').snapshots(),
