@@ -4,7 +4,7 @@ import '/model/users_model.dart';
 import 'CreatePostView_view.dart';
 
 class SocialFeedView extends StatefulWidget {
-  final Usuari usuari; // agafar usuari per al post
+  final Usuari usuari;
 
   const SocialFeedView({super.key, required this.usuari});
 
@@ -65,9 +65,7 @@ class _SocialFeedViewState extends State<SocialFeedView> {
                         var post = snapshot.data!.docs[index].data() as Map<String, dynamic>;
                         return _buildPostCard(
                           username: post['username'] ?? 'Anònim',
-                          likes: (post['likes'] ?? 0).toString(),
-                          content: post['content'],
-                          imageUrl: post['imageUrl'],
+                          content: post['content'] ?? '',
                         );
                       },
                     );
@@ -111,21 +109,19 @@ class _SocialFeedViewState extends State<SocialFeedView> {
 
   Widget _buildPostCard({
     required String username,
-    required String likes,
-    String? content,
-    String? imageUrl,
+    required String content,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.pinkAccent,
+            color: Colors.white38,
             blurRadius: 10,
-            spreadRadius: 2,
+            spreadRadius: 1,
           )
         ],
       ),
@@ -134,57 +130,29 @@ class _SocialFeedViewState extends State<SocialFeedView> {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 15,
+              const CircleAvatar(
+                radius: 25,
+                backgroundColor: Color(0xFFF1B1CB),
+                child: Icon(Icons.person, color: Colors.white, size: 20),
               ),
-              const SizedBox(width: 10),
-              Text("@$username",
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-              const Spacer(),
-              const Icon(Icons.favorite, size: 18, color: Colors.black),
-              const SizedBox(width: 5),
-              Text(likes, style: const TextStyle(color: Colors.black)),
+              const SizedBox(width: 15),
+              Text(
+                "@$username",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  fontSize: 15,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          if (content != null && content.isNotEmpty)
-            Text(content, style: const TextStyle(color: Colors.black87, fontSize: 13)),
-          if (imageUrl != null && imageUrl.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(15),
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
-              ),
-            ),
-          ],
           const SizedBox(height: 15),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreatePostView(
-                      usuari: widget.usuari,
-                      isReply: true,
-                      originalUser: username,
-                      originalContent: content ?? "Post amb imatge",
-                    ),
-                  ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1B1CB),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text("Respon →", style: TextStyle(color: Color(0xFFE94E77), fontWeight: FontWeight.bold, fontSize: 12)),
-              ),
+          Text(
+            content,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 16,
+              height: 1.4,
             ),
           ),
         ],
