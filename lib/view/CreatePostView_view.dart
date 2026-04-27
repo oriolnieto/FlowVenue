@@ -23,29 +23,25 @@ class CreatePostView extends StatefulWidget {
 class _CreatePostViewState extends State<CreatePostView> {
     final TextEditingController _textController = TextEditingController();
     final DbServices _dbServices = DbServices();
-    bool _imageSelected = false;
     bool _isLoading = false;
 
     final Color primaryPink = const Color(0xFFE94E77);
 
     Future<void> _enviarPost() async {
-        if (_textController.text.isEmpty && !_imageSelected) {
+        if (_textController.text.trim().isEmpty) { // comprovació rapida per evitar problems!
             ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Escriu alguna cosa o afegeix una foto")),
+                const SnackBar(content: Text("Escriu alguna cosa per publicar")),
             );
             return;
         }
 
         setState(() => _isLoading = true);
 
-        String? imageUrl = _imageSelected ? "https://images.unsplash.com/photo-1514525253361-bee8718a7439?q=80&w=1000&auto=format&fit=crop" : null;
-
         bool success = await _dbServices.crearPost(
             username: widget.usuari.username,
             content: widget.isReply
                 ? "Re: @${widget.originalUser} -> ${_textController.text}"
                 : _textController.text,
-            imageUrl: imageUrl,
         );
 
         setState(() => _isLoading = false);
@@ -68,7 +64,10 @@ class _CreatePostViewState extends State<CreatePostView> {
             appBar: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
-                title: Text(widget.isReply ? "Respondre" : "Nou Post", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                title: Text(
+                    widget.isReply ? "Respondre" : "Nou Post",
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
                 leading: IconButton(
                     icon: const Icon(Icons.close, color: Colors.white, size: 28),
                     onPressed: () => Navigator.pop(context),
@@ -98,7 +97,7 @@ class _CreatePostViewState extends State<CreatePostView> {
                                         decoration: BoxDecoration(
                                             color: Colors.white38,
                                             borderRadius: BorderRadius.circular(20),
-                                            boxShadow: [
+                                            boxShadow: const [
                                                 BoxShadow(color: Colors.black12, blurRadius: 10)
                                             ],
                                         ),
@@ -108,33 +107,12 @@ class _CreatePostViewState extends State<CreatePostView> {
                                             expands: true,
                                             style: const TextStyle(color: Colors.black87),
                                             decoration: InputDecoration(
-                                                hintText: widget.isReply ? "Escriu una resposta..." : "Què vols dir?",
+                                                hintText: widget.isReply
+                                                    ? "Escriu una resposta..."
+                                                    : "Què vols dir?",
                                                 hintStyle: const TextStyle(color: Colors.black38),
                                                 border: InputBorder.none,
                                             ),
-                                        ),
-                                    ),
-                                ),
-                                const SizedBox(height: 20),
-                                GestureDetector(
-                                    onTap: () => setState(() => _imageSelected = !_imageSelected),
-                                    child: Container(
-                                        height: 80,
-                                        width: double.infinity,
-                                        decoration: BoxDecoration(
-                                            color: Colors.white30,
-                                            borderRadius: BorderRadius.circular(20),
-                                            border: Border.all(color: Colors.white30, width: 1.5),
-                                        ),
-                                        child: _imageSelected
-                                            ? Icon(Icons.check_circle, color: primaryPink, size: 40)
-                                            : const Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                                Icon(Icons.add_a_photo, color: Colors.white),
-                                                SizedBox(height: 4),
-                                                Text("Afegir foto (opcional)", style: TextStyle(color: Colors.white, fontSize: 12))
-                                            ],
                                         ),
                                     ),
                                 ),
@@ -150,9 +128,18 @@ class _CreatePostViewState extends State<CreatePostView> {
                                         ),
                                         onPressed: _isLoading ? null : _enviarPost,
                                         child: _isLoading
-                                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                            : Text(widget.isReply ? "Respondre" : "Publicar",
-                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16)),
+                                            ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                                color: Colors.white, strokeWidth: 2))
+                                            : Text(
+                                            widget.isReply ? "Respondre" : "Publicar",
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                                fontSize: 16),
+                                        ),
                                     ),
                                 ),
                             ],
@@ -175,10 +162,15 @@ class _CreatePostViewState extends State<CreatePostView> {
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                    Text("@${widget.originalUser}", style: TextStyle(color: primaryPink, fontWeight: FontWeight.bold)),
+                    Text("@${widget.originalUser}",
+                        style: TextStyle(color: primaryPink, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text(widget.originalContent ?? "Post original",
-                        maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                    Text(
+                        widget.originalContent ?? "Post original",
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.black54, fontSize: 13),
+                    ),
                 ],
             ),
         );
